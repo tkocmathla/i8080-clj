@@ -217,8 +217,8 @@
    0xbd {:op :CMP-L, :size 1, :f (partial cmp :l)}
    0xbe {:op :CMP-M, :size 1, :f cmp-m}
    0xbf {:op :CMP-A, :size 1, :f (partial cmp :a)}
-
-   0xc0 {:op :RNZ, :size 1}
+   ; return if not zero
+   0xc0 {:op :RNZ, :size 1, :f (partial ret (zero? :z :cc))}
    0xc1 {:op :POP-B, :size 1}
    ; jump if not zero
    0xc2 {:op :JNZ, :size 3, :f (partial jmp (comp zero? :z :cc))}
@@ -230,8 +230,10 @@
    ; add immediate
    0xc6 {:op :ADI, :size 2, :f adi}
    0xc7 {:op :RST-0, :size 1}
-   0xc8 {:op :RZ, :size 1}
-   0xc9 {:op :RET, :size 1}
+   ; return if zero
+   0xc8 {:op :RZ, :size 1, :f (partial ret (comp pos? :z :cc))}
+   ; return
+   0xc9 {:op :RET, :size 1, :f (partial ret identity)}
    ; jump if zero
    0xca {:op :JZ, :size 3, :f (partial jmp (comp pos? :z :cc))}
    0xcb {:op nil, :size 1}
@@ -242,7 +244,8 @@
    ; add immediate with carry
    0xce {:op :ACI, :size 2, :f aci}
    0xcf {:op :RST-1, :size 1}
-   0xd0 {:op :RNC, :size 1}
+   ; return if not carry
+   0xd0 {:op :RNC, :size 1, :f (partial ret (comp zero? :cy :cc))}
    0xd1 {:op :POP-D, :size 1}
    ; jump if not carry
    0xd2 {:op :JNC, :size 3, :f (partial jmp (comp zero? :cy :cc))}
@@ -253,7 +256,8 @@
    ; subtract immediate with carry
    0xd6 {:op :SUI, :size 2, :f sui}
    0xd7 {:op :RST-2, :size 1}
-   0xd8 {:op :RC, :size 1}
+   ; return if carry
+   0xd8 {:op :RC, :size 1, :f (partial ret (comp pos? :cy :cc))}
    0xd9 {:op nil, :size 1}
    ; jump if carry
    0xda {:op :JC, :size 3, :f (partial jmp (comp pos? :cy :cc))}
@@ -264,7 +268,8 @@
    ; subtract immediate
    0xde {:op :SBI, :size 2, :f sbi}
    0xdf {:op :RST-3, :size 1}
-   0xe0 {:op :RPO, :size 1}
+   ; return if odd parity
+   0xe0 {:op :RPO, :size 1, :f (partial ret (comp zero? :p :cc))}
    0xe1 {:op :POP-H, :size 1}
    ; jump if odd parity
    0xe2 {:op :JPO, :size 3, :f (partial jmp (comp zero? :p :cc))}
@@ -274,7 +279,8 @@
    0xe5 {:op :PUSH-H, :size 1}
    0xe6 {:op :ANI, :size 2, :f ani}
    0xe7 {:op :RST-4, :size 1}
-   0xe8 {:op :RPE, :size 1}
+   ; return if even parity
+   0xe8 {:op :RPE, :size 1, :f (partial ret (comp pos? :p :cc))}
    0xe9 {:op :PCHL, :size 1}
    ; jump if even parity
    0xea {:op :JPE, :size 3, :f (partial jmp (comp pos? :p :cc))}
@@ -284,7 +290,8 @@
    0xed {:op nil, :size 1}
    0xee {:op :XRI, :size 2, :f xri}
    0xef {:op :RST-5, :size 1}
-   0xf0 {:op :RP, :size 1}
+   ; return if sign positive
+   0xf0 {:op :RP, :size 1, :f (partial ret (comp zero? :s :cc))}
    0xf1 {:op :POP-PSW, :size 1}
    ; jump if sign positive
    0xf2 {:op :JP, :size 3, :f (partial jmp (comp zero? :s :cc))}
@@ -294,7 +301,8 @@
    0xf5 {:op :PUSH-PSW, :size 1}
    0xf6 {:op :ORI, :size 2, :f ori}
    0xf7 {:op :RST-6, :size 1}
-   0xf8 {:op :RM, :size 1}
+   ; return if sign negative
+   0xf8 {:op :RM, :size 1, :f (partial ret (comp pos? :s :cc))}
    0xf9 {:op :SPHL, :size 1}
    ; jump if sign negative
    0xfa {:op :JM, :size 3, :f (partial jmp (comp pos? :s :cc))}

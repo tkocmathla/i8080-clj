@@ -84,13 +84,26 @@
   Calls subroutine at the address in the byte pair b2 b1 if (f state) is truthy."
   [f state b1 b2]
   (let [next-op (+ (state :pc) 2)]
-    (-> state
-        ; push address of next instruction onto stack (return address)
-        (assoc-in [:mem (- (state :sp) 1)] (bit-and (>> next-op 8) 0xff))
-        (assoc-in [:mem (- (state :sp) 2)] (bit-and next-op 0xff))
-        (update :sp #(- % 2))
-        ; jump to target address
-        (cond-> (f state) (assoc :pc (| (<< b2 8) b1))))))
+    (cond-> state
+      (f state)
+      (-> ; push address of next instruction onto stack (return address)
+          (assoc-in [:mem (- (state :sp) 1)] (bit-and (>> next-op 8) 0xff))
+          (assoc-in [:mem (- (state :sp) 2)] (bit-and next-op 0xff))
+          (update :sp #(- % 2))
+          ; jump to target address
+          (assoc :pc (| (<< b2 8) b1))))))
+
+(defn ret
+  "Implements all return ops.
+
+  Returns program control to address in the byte pair b2 b1 if (f state) is truthy."
+  [f state b1 b2]
+  (let [lo (get-in state [:mem (state :sp)])
+        hi (get-in state [:mem (inc (state :sp))])]
+    (cond-> state
+      (f state)
+      (-> (assoc :pc (| lo (<< hi 8)))
+          (update :sp #(+ % 2))))))
 
 ;; ----------------------------------------------------------------------------
 
