@@ -78,6 +78,22 @@
 
 ;; ----------------------------------------------------------------------------
 
+(defn call
+  "Implements all call ops.
+  
+  Calls subroutine at the address in the byte pair b2 b1 if (f state) is truthy."
+  [f state b1 b2]
+  (let [next-op (+ (state :pc) 2)]
+    (-> state
+        ; push address of next instruction onto stack (return address)
+        (assoc-in [:mem (- (state :sp) 1)] (bit-and (>> next-op 8) 0xff))
+        (assoc-in [:mem (- (state :sp) 2)] (bit-and next-op 0xff))
+        (update :sp #(- % 2))
+        ; jump to target address
+        (cond-> (f state) (assoc :pc (| (<< b2 8) b1))))))
+
+;; ----------------------------------------------------------------------------
+
 (defn mov
   "Copies value in reg1 to reg2"
   [reg1 reg2 state]
@@ -91,7 +107,7 @@
 (defn jmp
   "Implements all jump ops.
   
-  Jumps to the address in the byte pair b2 b1 if (f state) is truthy"
+  Jumps to the address in the byte pair b2 b1 if (f state) is truthy."
   [f state b1 b2]
   (cond-> state
     (f state) (assoc :pc (| (<< b2 8) b1))) )
