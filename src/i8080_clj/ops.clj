@@ -266,7 +266,7 @@
    0xe3 {:op :XTHL, :size 1}
    0xe4 {:op :CPO, :size 3}
    0xe5 {:op :PUSH-H, :size 1}
-   0xe6 {:op :ANI, :size 2}
+   0xe6 {:op :ANI, :size 2, :f ani}
    0xe7 {:op :RST-4, :size 1}
    0xe8 {:op :RPE, :size 1}
    0xe9 {:op :PCHL, :size 1}
@@ -275,7 +275,7 @@
    0xeb {:op :XCHG, :size 1}
    0xec {:op :CPE, :size 3}
    0xed {:op nil, :size 1}
-   0xee {:op :XRI, :size 2}
+   0xee {:op :XRI, :size 2, :f xri}
    0xef {:op :RST-5, :size 1}
    0xf0 {:op :RP, :size 1}
    0xf1 {:op :POP-PSW, :size 1}
@@ -284,7 +284,7 @@
    0xf3 {:op :DI, :size 1}
    0xf4 {:op :CP, :size 3}
    0xf5 {:op :PUSH-PSW, :size 1}
-   0xf6 {:op :ORI, :size 2}
+   0xf6 {:op :ORI, :size 2, :f ori}
    0xf7 {:op :RST-6, :size 1}
    0xf8 {:op :RM, :size 1}
    0xf9 {:op :SPHL, :size 1}
