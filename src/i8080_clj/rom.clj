@@ -14,8 +14,12 @@
 
 (defn load-rom
   [state rom]
-  (assoc state :mem (read-binary-file (io/resource rom))))
+  (let [mem-len (count (state :mem))
+        rom (read-binary-file (io/resource rom))
+        rom-len (count rom)]
+    (assoc state :mem (vec (concat rom (subvec (state :mem) rom-len))))))
 
+; TODO emit lazy-seq instead
 (defn dump-rom
   "Prints every instruction and its args found in rom file"
   [state rom]

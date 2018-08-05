@@ -2,7 +2,7 @@
   (:require
     [clojure.java.io :as io]
     [i8080-clj.core :refer [initial-state]]
-    [i8080-clj.ops :refer [ops advance-pc?]]))
+    [i8080-clj.ops :refer [ops]]))
 
 (defn get-byte
   "Gets the ith byte from memory"
@@ -11,7 +11,7 @@
 
 (defn get-args
   [{:keys [mem pc]} size]
-  (when size
+  (when (> size 1)
     (map (partial get-byte mem) (range (inc pc) (+ pc size)))))
 
 (defn disassemble-op
@@ -23,5 +23,5 @@
 (defn execute-op
   [state {:keys [f size args] :as op}]
   (let [{:keys [nopc?] :as new-state} (apply f state args)]
-    (cond-> (dissoc new-state nopc?)
+    (cond-> (dissoc new-state :nopc?)
       (not nopc?) (update :pc + size))))
