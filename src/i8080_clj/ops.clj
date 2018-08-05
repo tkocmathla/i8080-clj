@@ -1,13 +1,6 @@
 (ns i8080-clj.ops
   (:use [i8080-clj.opfns]))
 
-(def advance-pc?
-  (comp not
-        #{:JMP :JNZ :JZ :JNC :JC :JPO :JPE :JP :JM
-          :CALL :CZ :CNZ :RZ :RNZ :CNC :CC :RNC :RC :CPO :CPE :RPO :RPE :CP :CM :RP :RM
-          :RST
-          :PCHL}))
-
 (def ops
   {0x00 {:op :NOP, :size 1, :f identity}
    0x01 {:op :LXI-B, :size 3, :f (partial lxi :b :c)}
@@ -218,7 +211,7 @@
    0xbe {:op :CMP-M, :size 1, :f cmp-m}
    0xbf {:op :CMP-A, :size 1, :f (partial cmp :a)}
    ; return if not zero
-   0xc0 {:op :RNZ, :size 1, :f (partial ret (zero? :z :cc))}
+   0xc0 {:op :RNZ, :size 1, :f (partial ret (comp zero? :z :cc))}
    0xc1 {:op :POP-B, :size 1}
    ; jump if not zero
    0xc2 {:op :JNZ, :size 3, :f (partial jmp (comp zero? :z :cc))}

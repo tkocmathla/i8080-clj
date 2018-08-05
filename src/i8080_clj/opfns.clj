@@ -91,7 +91,8 @@
           (assoc-in [:mem (- (state :sp) 2)] (bit-and next-op 0xff))
           (update :sp #(- % 2))
           ; jump to target address
-          (assoc :pc (| (<< b2 8) b1))))))
+          (assoc :pc (| (<< b2 8) b1))
+          (assoc :nopc? true)))))
 
 (defn ret
   "Implements all return ops.
@@ -103,7 +104,8 @@
     (cond-> state
       (f state)
       (-> (assoc :pc (| lo (<< hi 8)))
-          (update :sp #(+ % 2))))))
+          (update :sp #(+ % 2))
+          (assoc :nopc? true)))))
 
 ;; ----------------------------------------------------------------------------
 
@@ -113,7 +115,7 @@
   (assoc state reg2 (state reg1)))
 
 (defn mvi
-  ""
+  "Copies byte value to to reg"
   [reg state b]
   (assoc state reg b))
 
@@ -123,11 +125,13 @@
   Jumps to the address in the byte pair b2 b1 if (f state) is truthy."
   [f state b1 b2]
   (cond-> state
-    (f state) (assoc :pc (| (<< b2 8) b1))) )
+    (f state)
+    (-> (assoc :pc (| (<< b2 8) b1))
+        (assoc :nopc? true))))
 
 (defn lxi
   "Implements all load immediate ops except LXI-SP."
   [hi lo state b1 b2]
-  (assoc state hi b2 lo b1))
+  (assoc state hi b2, lo b1))
 
 ;; ----------------------------------------------------------------------------

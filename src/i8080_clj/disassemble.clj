@@ -21,7 +21,7 @@
     (assoc op :args (get-args state size))))
 
 (defn execute-op
-  [state {:keys [op f size args]}]
-  (cond-> state
-    args (as-> st (apply f st args))
-    (advance-pc? op) (update :pc + size)))
+  [state {:keys [f size args] :as op}]
+  (let [{:keys [nopc?] :as new-state} (apply f state args)]
+    (cond-> (dissoc new-state nopc?)
+      (not nopc?) (update :pc + size))))
