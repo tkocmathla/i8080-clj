@@ -9,7 +9,7 @@
    0x04 {:op :INR-B, :size 1}
    0x05 {:op :DCR-B, :size 1}
    0x06 {:op :MVI-B, :size 2, :f (partial mvi :b)}
-   0x07 {:op :RLC, :size 1}
+   0x07 {:op :RLC, :size 1, :f rlc}
    0x08 {:op nil, :size 1}
    0x09 {:op :DAD-B, :size 1}
    0x0a {:op :LDAX-B, :size 1}
@@ -17,7 +17,7 @@
    0x0c {:op :INR-C, :size 1}
    0x0d {:op :DCR-C, :size 1}
    0x0e {:op :MVI-C, :size 2, :f (partial mvi :c)}
-   0x0f {:op :RRC, :size 1}
+   0x0f {:op :RRC, :size 1, :f rrc}
    0x10 {:op nil, :size 1}
    0x11 {:op :LXI-D, :size 3, :f (partial lxi :d :e)}
    0x12 {:op :STAX-D, :size 1}
@@ -25,7 +25,7 @@
    0x14 {:op :INR-D, :size 1}
    0x15 {:op :DCR-D, :size 1}
    0x16 {:op :MVI-D, :size 2, :f (partial mvi :d)}
-   0x17 {:op :RAL, :size 1}
+   0x17 {:op :RAL, :size 1, :f ral}
    0x18 {:op nil, :size 1}
    0x19 {:op :DAD-D, :size 1}
    0x1a {:op :LDAX-D, :size 1}
@@ -33,7 +33,7 @@
    0x1c {:op :INR-E, :size 1}
    0x1d {:op :DCR-E, :size 1}
    0x1e {:op :MVI-E, :size 2, :f (partial mvi :e)}
-   0x1f {:op :RAR, :size 1}
+   0x1f {:op :RAR, :size 1, :f rar}
    0x20 {:op :RIM, :size 1}
    0x21 {:op :LXI-H, :size 3, :f (partial lxi :h :l)}
    0x22 {:op :SHLD, :size 3}

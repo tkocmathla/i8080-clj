@@ -103,7 +103,7 @@
         hi (get-in state [:mem (inc (state :sp))])]
     (cond-> state
       (f state)
-      (-> (assoc :pc (| lo (<< hi 8)))
+      (-> (assoc :pc (| (<< hi 8) lo))
           (update :sp #(+ % 2))
           (assoc :nopc? true)))))
 
@@ -135,3 +135,35 @@
   (assoc state hi b2, lo b1))
 
 ;; ----------------------------------------------------------------------------
+
+(defn rrc
+  "Rotates accumulator register by one right shift"
+  [state]
+  (let [x (state :a)]
+    (-> state
+        (assoc :a (| (<< (bit-and x 1) 7) (>> x 1)))
+        (assoc-in [:cc :cy] (bit-and x 1)))))
+
+(defn rlc
+  "Rotates accumulator register by one left shift"
+  [state]
+  (let [x (state :a)]
+    (-> state
+        (assoc :a (| (>> (bit-and x 0x80) 7) (bit-and (<< x 1) 0xff)))
+        (assoc-in [:cc :cy] (if (pos? (bit-and x 0x80)) 1 0)))))
+
+(defn ral
+  "Rotates accumulator register through the carry by one left shift"
+  [state]
+  (let [x (state :a)]
+    (-> state
+        (assoc :a (| (<< x 1) (get-in state [:cc :cy])))
+        (assoc-in [:cc :cy] (if (pos? (bit-and x 0x80)) 1 0)))))
+
+(defn rar
+  "Rotates accumulator register through the carry by one right shift"
+  [state]
+  (let [x (state :a)]
+    (-> state
+        (assoc :a (| (<< (get-in state [:cc :cy]) 7) (>> x 1)))
+        (assoc-in [:cc :cy] (bit-and x 1)))))
