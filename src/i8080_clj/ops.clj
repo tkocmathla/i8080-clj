@@ -11,7 +11,7 @@
    0x06 {:op :MVI-B, :size 2, :f (partial mvi :b)}
    0x07 {:op :RLC, :size 1, :f rlc}
    0x08 {:op nil, :size 1}
-   0x09 {:op :DAD-B, :size 1}
+   0x09 {:op :DAD-B, :size 1, :f dad-b}
    0x0a {:op :LDAX-B, :size 1, :f (partial ldax :b :c)}
    0x0b {:op :DCX-B, :size 1}
    0x0c {:op :INR-C, :size 1}
@@ -27,7 +27,7 @@
    0x16 {:op :MVI-D, :size 2, :f (partial mvi :d)}
    0x17 {:op :RAL, :size 1, :f ral}
    0x18 {:op nil, :size 1}
-   0x19 {:op :DAD-D, :size 1}
+   0x19 {:op :DAD-D, :size 1, :f dad-d}
    0x1a {:op :LDAX-D, :size 1, :f (partial ldax :d :e)}
    0x1b {:op :DCX-D, :size 1}
    0x1c {:op :INR-E, :size 1}
@@ -43,7 +43,7 @@
    0x26 {:op :MVI-H, :size 2, :f (partial mvi :h)}
    0x27 {:op :DAA, :size 1}
    0x28 {:op nil, :size 1}
-   0x29 {:op :DAD-H, :size 1}
+   0x29 {:op :DAD-H, :size 1, :f dad-h}
    0x2a {:op :LHLD, :size 3}
    0x2b {:op :DCX-H, :size 1}
    0x2c {:op :INR-L, :size 1}
@@ -52,14 +52,14 @@
    0x2f {:op :CMA, :size 1}
    0x30 {:op :SIM, :size 1}
    0x31 {:op :LXI-SP, :size 3, :f lxi-sp}
-   0x32 {:op :STA, :size 3}
+   0x32 {:op :STA, :size 3, :f sta}
    0x33 {:op :INX-SP, :size 1, :f inx-sp}
    0x34 {:op :INR-M, :size 1}
    0x35 {:op :DCR-M, :size 1}
    0x36 {:op :MVI-M, :size 2}
    0x37 {:op :STC, :size 1}
    0x38 {:op nil, :size 1}
-   0x39 {:op :DAD-SP, :size 1}
+   0x39 {:op :DAD-SP, :size 1, :f dad-sp}
    0x3a {:op :LDA, :size 3}
    0x3b {:op :DCX-SP, :size 1}
    0x3c {:op :INR-A, :size 1}
@@ -213,14 +213,14 @@
 
    ; return if not zero
    0xc0 {:op :RNZ, :size 1, :f (partial ret (comp zero? :z :cc))}
-   0xc1 {:op :POP-B, :size 1}
+   0xc1 {:op :POP-B, :size 1, :f pop-b}
    ; jump if not zero
    0xc2 {:op :JNZ, :size 3, :f (partial jmp (comp zero? :z :cc))}
    ; jump
    0xc3 {:op :JMP, :size 3, :f (partial jmp (constantly true))}
    ; call if not zero
    0xc4 {:op :CNZ, :size 3, :f (partial call (comp zero? :z :cc))}
-   0xc5 {:op :PUSH-B, :size 1}
+   0xc5 {:op :PUSH-B, :size 1, :f push-b}
    ; add immediate
    0xc6 {:op :ADI, :size 2, :f adi}
    0xc7 {:op :RST-0, :size 1}
@@ -240,13 +240,13 @@
    0xcf {:op :RST-1, :size 1}
    ; return if not carry
    0xd0 {:op :RNC, :size 1, :f (partial ret (comp zero? :cy :cc))}
-   0xd1 {:op :POP-D, :size 1}
+   0xd1 {:op :POP-D, :size 1, :f pop-d}
    ; jump if not carry
    0xd2 {:op :JNC, :size 3, :f (partial jmp (comp zero? :cy :cc))}
    0xd3 {:op :OUT, :size 2}
    ; call if not carry
    0xd4 {:op :CNC, :size 3, :f (partial call (comp zero? :cy :cc))}
-   0xd5 {:op :PUSH-D, :size 1}
+   0xd5 {:op :PUSH-D, :size 1, :f push-d}
    ; subtract immediate with carry
    0xd6 {:op :SUI, :size 2, :f sui}
    0xd7 {:op :RST-2, :size 1}
@@ -264,13 +264,13 @@
    0xdf {:op :RST-3, :size 1}
    ; return if odd parity
    0xe0 {:op :RPO, :size 1, :f (partial ret (comp zero? :p :cc))}
-   0xe1 {:op :POP-H, :size 1}
+   0xe1 {:op :POP-H, :size 1, :f pop-h}
    ; jump if odd parity
    0xe2 {:op :JPO, :size 3, :f (partial jmp (comp zero? :p :cc))}
    0xe3 {:op :XTHL, :size 1}
    ; call if odd parity
    0xe4 {:op :CPO, :size 3, :f (partial call (comp zero? :p :cc))}
-   0xe5 {:op :PUSH-H, :size 1}
+   0xe5 {:op :PUSH-H, :size 1, :f push-h}
    0xe6 {:op :ANI, :size 2, :f ani}
    0xe7 {:op :RST-4, :size 1}
    ; return if even parity

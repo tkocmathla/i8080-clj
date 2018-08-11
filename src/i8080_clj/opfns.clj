@@ -27,7 +27,7 @@
 ;; Arithmetic group -----------------------------------------------------------
 
 (defn- add*
-  "Implements all arithmetic ops.
+  "Implements all basic arithmetic ops.
   
   f - addition or subtraction function
   x - value to add or subtract with register a"
@@ -54,7 +54,24 @@
 (defn sub-m [state] (add* - (byte-at-hl state) state))
 (defn sbb-m [state] (add* - (byte-at-hl state) state {:with-carry? true}))
 
+(defn- dad*
+  "Implements all double-add instructions.
+  
+  x - value to add with register pair hl"
+  [x state]
+  (let [ans (+ x (| (<< (state :h) 8) (state :l)))]
+    (-> state
+        (assoc :h (>> (bit-and ans 0xff00) 8))
+        (assoc :l (bit-and ans 0xff))
+        (assoc-in [:cc :cy] (if (> ans 0xff) 1 0)))))
+
+(defn dad-b [{:keys [b c] :as state}] (dad* (| (<< b 8) c) state))
+(defn dad-d [{:keys [d e] :as state}] (dad* (| (<< d 8) e) state))
+(defn dad-h [{:keys [h l] :as state}] (dad* (| (<< h 8) l) state))
+(defn dad-sp [{:keys [sp] :as state}] (dad* sp state))
+
 (defn dcr
+  "Decrements value in register"
   [reg state]
   (let [ans (dec (state reg))]
     (-> state
@@ -82,27 +99,27 @@
 (defn jmp
   "Implements all jump ops.
   
-  Jumps to the address in the byte pair b2 b1 if (f state) is truthy."
-  [f state b1 b2]
+  Jumps to the address in the byte pair hi lo if (f state) is truthy."
+  [f state lo hi]
   (cond-> state
     (f state)
-    (-> (assoc :pc (| (<< b2 8) b1))
+    (-> (assoc :pc (| (<< hi 8) lo))
         (assoc :nopc? true))))
 
 (defn call
   "Implements all call ops.
   
-  Calls subroutine at the address in the byte pair b2 b1 if (f state) is truthy."
-  [f state b1 b2]
+  Calls subroutine at the address in the byte pair hi lo if (f state) is truthy."
+  [f state lo hi]
   (let [next-op (+ (state :pc) 2)]
     (cond-> state
       (f state)
       (-> ; push address of next instruction onto stack (return address)
           (assoc-in [:mem (- (state :sp) 1)] (bit-and (>> next-op 8) 0xff))
           (assoc-in [:mem (- (state :sp) 2)] (bit-and next-op 0xff))
-          (update :sp #(- % 2))
+          (update :sp - 2)
           ; jump to target address
-          (assoc :pc (| (<< b2 8) b1))
+          (assoc :pc (| (<< hi 8) lo))
           (assoc :nopc? true)))))
 
 (defn ret
@@ -115,7 +132,7 @@
     (cond-> state
       (f state)
       (-> (assoc :pc (| (<< hi 8) lo))
-          (update :sp #(+ % 2))
+          (update :sp + 2)
           (assoc :nopc? true)))))
 
 ;; Logical group --------------------------------------------------------------
@@ -126,12 +143,13 @@
   f - bitwise boolean function (e.g. bit-and)
   x - value against which to compute boolean function with register a"
   [f x state]
-  (let [ans (apply f (state :a) x)]
+  (let [ans (apply f [(state :a) x])]
     (cond-> (assoc state :a ans)
       (not= f bit-not)
       (-> (assoc-in [:cc :z] (if (zero? ans) 1 0))
           (assoc-in [:cc :s] (if (= 0x80 (bit-and ans 0x80)) 1 0))
           (assoc-in [:cc :cy] 0)
+          (assoc-in [:cc :ac] 0)
           (assoc-in [:cc :p] (parity ans))))))
 
 (defn ana [reg state] (bool* bit-and (state reg) state))
@@ -216,4 +234,51 @@
   (let [adr (| (<< (state hi) 8) (state lo))]
     (assoc state :a (get-in state [:mem adr]))))
 
+(defn sta
+  [state lo hi]
+  (let [adr (| (<< hi 8) lo)]
+    (assoc-in state [:mem adr] (state :a))))
+
 ;; ----------------------------------------------------------------------------
+
+(defn- push*
+  [lo hi state]
+  (-> state
+      (assoc-in [:mem (- (state :sp) 1)] lo)
+      (assoc-in [:mem (- (state :sp) 2)] hi)
+      (update :sp - 2)))
+
+(defn push-b [{:keys [b c] :as state}] (push* b c state))
+(defn push-d [{:keys [d e] :as state}] (push* d e state))
+(defn push-h [{:keys [h l] :as state}] (push* h l state))
+
+(defn push-psw
+  [state]
+  (let [{:keys [z s p cy ac]} (state :cc)
+        psw (| z (<< s 1) (<< p 2) (<< cy 3) (<< ac 4))]
+    (-> state
+        (assoc-in [:mem (- (state :sp) 1)] (state :a))
+        (assoc-in [:mem (- (state :sp) 2)] psw)
+        (update :sp - 2))))
+
+(defn- pop*
+  [lo hi state]
+  (-> state
+      (assoc lo (get-in state [:mem (state :sp)]))
+      (assoc hi (get-in state [:mem (inc (state :sp))]))))
+
+(defn pop-b [{:keys [b c] :as state}] (pop* b c state))
+(defn pop-d [{:keys [d e] :as state}] (pop* d e state))
+(defn pop-h [{:keys [h l] :as state}] (pop* h l state))
+
+(defn pop-psw
+  [state]
+  (let [psw (get-in state [:mem (state :sp)])]
+    (-> state
+        (assoc :a (get-in state [:mem (inc (state :sp))]))
+        (assoc-in [:cc :z] (if (pos? (bit-and psw 0x01)) 1 0))
+        (assoc-in [:cc :s] (if (pos? (bit-and psw 0x02)) 1 0))
+        (assoc-in [:cc :p] (if (pos? (bit-and psw 0x04)) 1 0))
+        (assoc-in [:cc :cy] (if (pos? (bit-and psw 0x08)) 1 0))
+        (assoc-in [:cc :ac] (if (pos? (bit-and psw 0x10)) 1 0))
+        (update :sp + 2))))
