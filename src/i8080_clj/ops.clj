@@ -5,9 +5,9 @@
   {0x00 {:op :NOP, :size 1, :f identity}
    0x01 {:op :LXI-B, :size 3, :f (partial lxi :b :c)}
    0x02 {:op :STAX-B, :size 1}
-   0x03 {:op :INX-B, :size 1}
+   0x03 {:op :INX-B, :size 1, :f (partial inx :b :c)}
    0x04 {:op :INR-B, :size 1}
-   0x05 {:op :DCR-B, :size 1}
+   0x05 {:op :DCR-B, :size 1, :f (partial dcr :b)}
    0x06 {:op :MVI-B, :size 2, :f (partial mvi :b)}
    0x07 {:op :RLC, :size 1, :f rlc}
    0x08 {:op nil, :size 1}
@@ -15,29 +15,29 @@
    0x0a {:op :LDAX-B, :size 1}
    0x0b {:op :DCX-B, :size 1}
    0x0c {:op :INR-C, :size 1}
-   0x0d {:op :DCR-C, :size 1}
+   0x0d {:op :DCR-C, :size 1, :f (partial dcr :c)}
    0x0e {:op :MVI-C, :size 2, :f (partial mvi :c)}
    0x0f {:op :RRC, :size 1, :f rrc}
    0x10 {:op nil, :size 1}
    0x11 {:op :LXI-D, :size 3, :f (partial lxi :d :e)}
    0x12 {:op :STAX-D, :size 1}
-   0x13 {:op :INX-D, :size 1}
+   0x13 {:op :INX-D, :size 1, :f (partial inx :d :e)}
    0x14 {:op :INR-D, :size 1}
-   0x15 {:op :DCR-D, :size 1}
+   0x15 {:op :DCR-D, :size 1, :f (partial dcr :d)}
    0x16 {:op :MVI-D, :size 2, :f (partial mvi :d)}
    0x17 {:op :RAL, :size 1, :f ral}
    0x18 {:op nil, :size 1}
    0x19 {:op :DAD-D, :size 1}
-   0x1a {:op :LDAX-D, :size 1}
+   0x1a {:op :LDAX-D, :size 1, :f (partial ldax :d :e)}
    0x1b {:op :DCX-D, :size 1}
    0x1c {:op :INR-E, :size 1}
-   0x1d {:op :DCR-E, :size 1}
+   0x1d {:op :DCR-E, :size 1, :f (partial dcr :d)}
    0x1e {:op :MVI-E, :size 2, :f (partial mvi :e)}
    0x1f {:op :RAR, :size 1, :f rar}
    0x20 {:op :RIM, :size 1}
    0x21 {:op :LXI-H, :size 3, :f (partial lxi :h :l)}
    0x22 {:op :SHLD, :size 3}
-   0x23 {:op :INX-H, :size 1}
+   0x23 {:op :INX-H, :size 1, :f (partial inx :h :l)}
    0x24 {:op :INR-H, :size 1}
    0x25 {:op :DCR-H, :size 1}
    0x26 {:op :MVI-H, :size 2, :f (partial mvi :h)}
@@ -53,7 +53,7 @@
    0x30 {:op :SIM, :size 1}
    0x31 {:op :LXI-SP, :size 3, :f (fn [state b1 b2] (assoc state :sp (| (<< b2 8) b1)))}
    0x32 {:op :STA, :size 3}
-   0x33 {:op :INX-SP, :size 1}
+   0x33 {:op :INX-SP, :size 1, :f inx-sp}
    0x34 {:op :INR-M, :size 1}
    0x35 {:op :DCR-M, :size 1}
    0x36 {:op :MVI-M, :size 2}
@@ -63,7 +63,7 @@
    0x3a {:op :LDA, :size 3}
    0x3b {:op :DCX-SP, :size 1}
    0x3c {:op :INR-A, :size 1}
-   0x3d {:op :DCR-A, :size 1}
+   0x3d {:op :DCR-A, :size 1, :f (partial dcr :a)}
    0x3e {:op :MVI-A, :size 2, :f (partial mvi :a)}
    0x3f {:op :CMC, :size 1}
    0x40 {:op :MOV-B-B, :size 1, :f (partial mov :b :b)}
@@ -72,7 +72,7 @@
    0x43 {:op :MOV-B-E, :size 1, :f (partial mov :e :b)}
    0x44 {:op :MOV-B-H, :size 1, :f (partial mov :h :b)}
    0x45 {:op :MOV-B-L, :size 1, :f (partial mov :l :b)}
-   0x46 {:op :MOV-B-M, :size 1}
+   0x46 {:op :MOV-B-M, :size 1, :f (partial mov-from-m :b)}
    0x47 {:op :MOV-B-A, :size 1, :f (partial mov :a :b)}
    0x48 {:op :MOV-C-B, :size 1, :f (partial mov :b :c)}
    0x49 {:op :MOV-C-C, :size 1, :f (partial mov :c :c)}
@@ -80,7 +80,7 @@
    0x4b {:op :MOV-C-E, :size 1, :f (partial mov :e :c)}
    0x4c {:op :MOV-C-H, :size 1, :f (partial mov :h :c)}
    0x4d {:op :MOV-C-L, :size 1, :f (partial mov :l :c)}
-   0x4e {:op :MOV-C-M, :size 1}
+   0x4e {:op :MOV-C-M, :size 1, :f (partial mov-from-m :c)}
    0x4f {:op :MOV-C-A, :size 1, :f (partial mov :a :c)}
    0x50 {:op :MOV-D-B, :size 1, :f (partial mov :b :d)}
    0x51 {:op :MOV-D-C, :size 1, :f (partial mov :b :d)}
@@ -88,7 +88,7 @@
    0x53 {:op :MOV-D-E, :size 1, :f (partial mov :e :d)}
    0x54 {:op :MOV-D-H, :size 1, :f (partial mov :h :d)}
    0x55 {:op :MOV-D-L, :size 1, :f (partial mov :l :d)}
-   0x56 {:op :MOV-D-M, :size 1}
+   0x56 {:op :MOV-D-M, :size 1, :f (partial mov-from-m :d)}
    0x57 {:op :MOV-D-A, :size 1, :f (partial mov :a :d)}
    0x58 {:op :MOV-E-B, :size 1, :f (partial mov :b :e)}
    0x59 {:op :MOV-E-C, :size 1, :f (partial mov :c :e)}
@@ -96,7 +96,7 @@
    0x5b {:op :MOV-E-E, :size 1, :f (partial mov :e :e)}
    0x5c {:op :MOV-E-H, :size 1, :f (partial mov :h :e)}
    0x5d {:op :MOV-E-L, :size 1, :f (partial mov :l :e)}
-   0x5e {:op :MOV-E-M, :size 1}
+   0x5e {:op :MOV-E-M, :size 1, :f (partial mov-from-m :e)}
    0x5f {:op :MOV-E-A, :size 1, :f (partial mov :a :e)}
    0x60 {:op :MOV-H-B, :size 1, :f (partial mov :b :h)}
    0x61 {:op :MOV-H-C, :size 1, :f (partial mov :c :h)}
@@ -114,14 +114,14 @@
    0x6d {:op :MOV-L-L, :size 1, :f (partial mov :l :l)}
    0x6e {:op :MOV-L-M, :size 1}
    0x6f {:op :MOV-L-A, :size 1, :f (partial mov :a :l)}
-   0x70 {:op :MOV-M-B, :size 1}
-   0x71 {:op :MOV-M-C, :size 1}
-   0x72 {:op :MOV-M-D, :size 1}
-   0x73 {:op :MOV-M-E, :size 1}
+   0x70 {:op :MOV-M-B, :size 1, :f (partial mov-to-m :b)}
+   0x71 {:op :MOV-M-C, :size 1, :f (partial mov-to-m :c)}
+   0x72 {:op :MOV-M-D, :size 1, :f (partial mov-to-m :d)}
+   0x73 {:op :MOV-M-E, :size 1, :f (partial mov-to-m :e)}
    0x74 {:op :MOV-M-H, :size 1}
    0x75 {:op :MOV-M-L, :size 1}
    0x76 {:op :HLT, :size 1}
-   0x77 {:op :MOV-M-A, :size 1}
+   0x77 {:op :MOV-M-A, :size 1, :f (partial mov-to-m :a)}
    0x78 {:op :MOV-A-B, :size 1, :f (partial mov :b :a)}
    0x79 {:op :MOV-A-C, :size 1, :f (partial mov :c :a)}
    0x7a {:op :MOV-A-D, :size 1, :f (partial mov :d :a)}
@@ -201,15 +201,16 @@
    0xb6 {:op :ORA-M, :size 1, :f ora-m}
    0xb7 {:op :ORA-A, :size 1, :f (partial ora :a)}
 
-   ; boolean not
+   ; compare
    0xb8 {:op :CMP-B, :size 1, :f (partial cmp :b)}
    0xb9 {:op :CMP-C, :size 1, :f (partial cmp :c)}
    0xba {:op :CMP-D, :size 1, :f (partial cmp :d)}
    0xbb {:op :CMP-E, :size 1, :f (partial cmp :e)}
    0xbc {:op :CMP-H, :size 1, :f (partial cmp :h)}
    0xbd {:op :CMP-L, :size 1, :f (partial cmp :l)}
-   0xbe {:op :CMP-M, :size 1, :f cmp-m}
+   0xbe {:op :CMP-M, :size 1}
    0xbf {:op :CMP-A, :size 1, :f (partial cmp :a)}
+
    ; return if not zero
    0xc0 {:op :RNZ, :size 1, :f (partial ret (comp zero? :z :cc))}
    0xc1 {:op :POP-B, :size 1}

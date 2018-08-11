@@ -4,6 +4,52 @@
     [i8080-clj.core :refer [initial-state]]
     [i8080-clj.disassemble :as dis]))
 
+(deftest parity-test
+  (is (= 2r10) 0)
+  (is (= 2r11) 1)
+  (is (= 2r101) 1)
+  (is (= 2r100) 0))
+
+;; ----------------------------------------------------------------------------
+
+(deftest add-test
+  (doseq [[opcode reg] (map vector [0x80 0x81 0x82 0x83 0x84 0x85] [:b :c :d :e :h :l])]
+    (let [ini-st (assoc initial-state :a 3 reg 6 :mem [opcode])
+          op (dis/disassemble-op ini-st)
+          new-st (dis/execute-op ini-st op)]
+      (is (= 1 (:pc new-st)))
+      (is (= 9 (:a new-st)) (str "add :a and " reg))
+      (is (= 0 (get-in new-st [:cc :z])))
+      (is (= 0 (get-in new-st [:cc :s])))
+      (is (= 1 (get-in new-st [:cc :p])))
+      (is (= 0 (get-in new-st [:cc :cy])))
+      (is (= 0 (get-in new-st [:cc :ac]))))))
+
+(deftest adc-test
+  (doseq [[opcode reg] (map vector [0x88 0x89 0x8a 0x8b 0x8c 0x8d] [:b :c :d :e :h :l])]
+    (let [ini-st (assoc initial-state :a 250 reg 10 :mem [opcode])
+          op (dis/disassemble-op ini-st)
+          new-st (dis/execute-op ini-st op)]
+      (is (= 1 (:pc new-st)))
+      (is (= 4 (:a new-st)) (str "adc :a and " reg))
+      (is (= 0 (get-in new-st [:cc :z])))
+      (is (= 0 (get-in new-st [:cc :s])))
+      (is (= 0 (get-in new-st [:cc :p])))
+      (is (= 1 (get-in new-st [:cc :cy])))
+      (is (= 0 (get-in new-st [:cc :ac]))))))
+
+(deftest cmp-test
+  (doseq [[opcode reg] (map vector [0xb8 0xb9 0xba 0xbb 0xbc 0xbd] [:b :c :d :e :h :l])]
+    (let [ini-st (assoc initial-state :a 5 reg 10 :mem [opcode])
+          op (dis/disassemble-op ini-st)
+          new-st (dis/execute-op ini-st op)]
+      (is (= 1 (:pc new-st)))
+      (is (= 0 (get-in new-st [:cc :z])))
+      (is (= 1 (get-in new-st [:cc :s])))
+      (is (= 1 (get-in new-st [:cc :p])))
+      (is (= 1 (get-in new-st [:cc :cy])))
+      (is (= 0 (get-in new-st [:cc :ac]))))))
+
 (deftest jmp-test
   (let [ini-st (assoc initial-state :mem [0xc3 0x05 0x00 0xff 0xff 0xff])
         op (dis/disassemble-op ini-st)
