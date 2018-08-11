@@ -50,6 +50,15 @@
       (is (= 1 (get-in new-st [:cc :cy])))
       (is (= 0 (get-in new-st [:cc :ac]))))))
 
+(deftest inx-test
+  (let [ini-st (assoc initial-state :e 0xff :mem [0x13])
+        op (dis/disassemble-op ini-st)
+        new-st (dis/execute-op ini-st op)]
+    (is (= (:op op) :INX-D))
+    (is (= 1 (:pc new-st)))
+    (is (= 0x01 (new-st :d)))
+    (is (= 0x00 (new-st :e)))))
+
 (deftest jmp-test
   (let [ini-st (assoc initial-state :mem [0xc3 0x05 0x00 0xff 0xff 0xff])
         op (dis/disassemble-op ini-st)

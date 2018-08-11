@@ -12,7 +12,7 @@
    0x07 {:op :RLC, :size 1, :f rlc}
    0x08 {:op nil, :size 1}
    0x09 {:op :DAD-B, :size 1}
-   0x0a {:op :LDAX-B, :size 1}
+   0x0a {:op :LDAX-B, :size 1, :f (partial ldax :b :c)}
    0x0b {:op :DCX-B, :size 1}
    0x0c {:op :INR-C, :size 1}
    0x0d {:op :DCR-C, :size 1, :f (partial dcr :c)}
@@ -51,7 +51,7 @@
    0x2e {:op :MVI-L, :size 2, :f (partial mvi :l)}
    0x2f {:op :CMA, :size 1}
    0x30 {:op :SIM, :size 1}
-   0x31 {:op :LXI-SP, :size 3, :f (fn [state b1 b2] (assoc state :sp (| (<< b2 8) b1)))}
+   0x31 {:op :LXI-SP, :size 3, :f lxi-sp}
    0x32 {:op :STA, :size 3}
    0x33 {:op :INX-SP, :size 1, :f inx-sp}
    0x34 {:op :INR-M, :size 1}

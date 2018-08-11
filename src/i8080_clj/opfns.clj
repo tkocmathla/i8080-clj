@@ -58,6 +58,7 @@
   [reg state]
   (let [ans (dec (state reg))]
     (-> state
+        (assoc reg (bit-and ans 0xff))
         (assoc-in [:cc :z] (if (zero? ans) 1 0))
         (assoc-in [:cc :s] (if (pos? (bit-and ans 0x80)) 1 0))
         (assoc-in [:cc :p] (parity ans))
@@ -107,8 +108,8 @@
 (defn ret
   "Implements all return ops.
 
-  Returns program control to address in the byte pair b2 b1 if (f state) is truthy."
-  [f state b1 b2]
+  Returns program control to address at stack pointer if (f state) is truthy."
+  [f state]
   (let [lo (get-in state [:mem (state :sp)])
         hi (get-in state [:mem (inc (state :sp))])]
     (cond-> state
@@ -205,6 +206,10 @@
   "Implements all load immediate ops except LXI-SP."
   [hi lo state b1 b2]
   (assoc state hi b2, lo b1))
+
+(defn lxi-sp
+  [state lo hi]
+  (assoc state :sp (| (<< hi 8) lo)))
 
 (defn ldax
   [hi lo state]
