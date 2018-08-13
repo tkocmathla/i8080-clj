@@ -289,7 +289,7 @@
    0xf1 {:op :POP-PSW, :size 1, :cycles 10}
    ; jump if sign positive
    0xf2 {:op :JP, :size 3, :cycles 10, :f (partial jmp (comp zero? :s :cc))}
-   0xf3 {:op :DI, :size 1, :cycles 18}
+   0xf3 {:op :DI, :size 1, :cycles 18, :f (fn [state] (assoc state :int-enable? false))}
    ; call if sign positive
    0xf4 {:op :CP, :size 3, :cycles 17, :f (partial call (comp zero? :s :cc))}
    0xf5 {:op :PUSH-PSW, :size 1, :cycles 11}
@@ -300,7 +300,7 @@
    0xf9 {:op :SPHL, :size 1, :cycles 5}
    ; jump if sign negative
    0xfa {:op :JM, :size 3, :cycles 10, :f (partial jmp (comp pos? :s :cc))}
-   0xfb {:op :EI, :size 1, :cycles 5}
+   0xfb {:op :EI, :size 1, :cycles 5, :f (fn [state] (assoc state :int-enable? true))}
    ; call if sign negative
    0xfc {:op :CM, :size 3, :cycles 17, :f (partial call (comp pos? :s :cc))}
    0xfd {:op nil, :size 1, :cycles 17}

@@ -229,6 +229,11 @@
   [state lo hi]
   (assoc state :sp (| (<< hi 8) lo)))
 
+(defn lda
+  [state lo hi]
+  (let [adr (| (<< hi 8) lo)]
+    (assoc state :a (get-in state [:mem adr]))))
+
 (defn ldax
   [hi lo state]
   (let [adr (| (<< (state hi) 8) (state lo))]
@@ -251,6 +256,7 @@
 (defn push-b [{:keys [b c] :as state}] (push* b c state))
 (defn push-d [{:keys [d e] :as state}] (push* d e state))
 (defn push-h [{:keys [h l] :as state}] (push* h l state))
+(defn push-pc [{:keys [pc] :as state}] (push* (bit-and pc 0xff) (>> (bit-and pc 0xff00) 8) state))
 
 (defn push-psw
   [state]
