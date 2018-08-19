@@ -9,7 +9,7 @@ pom.xml.asc
 /.nrepl-port
 .hgignore
 .hg/
-*.sw[ghijklmnop]
+*.sw[a-z]
 *~
 /dev
 profiles.clj
