@@ -45,7 +45,7 @@
       (is (= 1 (:pc new-st)))
       (is (= 0 (get-in new-st [:cc :z])))
       (is (= 1 (get-in new-st [:cc :s])))
-      (is (= 1 (get-in new-st [:cc :p])))
+      (is (= 0 (get-in new-st [:cc :p])))
       (is (= 0 (get-in new-st [:cc :cy])))
       (is (= 0 (get-in new-st [:cc :ac]))))))
 
