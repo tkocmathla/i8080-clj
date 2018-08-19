@@ -1,24 +1,24 @@
 (ns i8080-clj.opfns
-  "Helper functions for 8080 instruction set")
+  "Helper functions for 8080 instruction set"
+  (:require [taoensso.tufte :refer [defnp]]))
 
 (def << bit-shift-left)
 (def >> bit-shift-right)
 (def | bit-or)
 
-(defn parity
+(defnp parity
   "Returns 1 if byte b has an even number of 1's, or 0 otherwise"
-  [b]
-  (let [f (fn [[b sum]] [(>> b 1) (+ sum (bit-and b 1))])
-        [[_ sum]] (drop-while (comp pos? first) (iterate f [b 0]))]
-    (if (even? sum) 1 0)))
+  [^long b]
+  (let [n (Long/bitCount b)]
+    (if (even? n) 1 0)))
 
-(defn byte-at-hl
+(defnp byte-at-hl
   "Returns the byte at the address in the HL register pair"
   [state]
   (let [addr (| (<< (state :h) 8) (state :l))]
     (get-in state [:mem addr])))
 
-(defn byte-to-hl
+(defnp byte-to-hl
   "Assigns the value b to the memory address in the HL register pair"
   [state b]
   (let [addr (| (<< (state :h) 8) (state :l))]
@@ -41,18 +41,18 @@
         (assoc-in [:cc :p] (parity (bit-and ans 0xff)))
         (assoc :a (bit-and ans 0xff)))))
 
-(defn add [reg state] (add* + (state reg) state))
-(defn adc [reg state] (add* + (state reg) state {:with-carry? true}))
-(defn sub [reg state] (add* - (state reg) state))
-(defn sbb [reg state] (add* - (state reg) state {:with-carry? true}))
-(defn adi [state b] (add* + b state))
-(defn aci [state b] (add* + b state {:with-carry? true}))
-(defn sbi [state b] (add* - b state))
-(defn sui [state b] (add* - b state {:with-carry? true}))
-(defn add-m [state] (add* + (byte-at-hl state) state))
-(defn adc-m [state] (add* + (byte-at-hl state) state {:with-carry? true}))
-(defn sub-m [state] (add* - (byte-at-hl state) state))
-(defn sbb-m [state] (add* - (byte-at-hl state) state {:with-carry? true}))
+(defnp add [reg state] (add* + (state reg) state))
+(defnp adc [reg state] (add* + (state reg) state {:with-carry? true}))
+(defnp sub [reg state] (add* - (state reg) state))
+(defnp sbb [reg state] (add* - (state reg) state {:with-carry? true}))
+(defnp adi [state b] (add* + b state))
+(defnp aci [state b] (add* + b state {:with-carry? true}))
+(defnp sbi [state b] (add* - b state))
+(defnp sui [state b] (add* - b state {:with-carry? true}))
+(defnp add-m [state] (add* + (byte-at-hl state) state))
+(defnp adc-m [state] (add* + (byte-at-hl state) state {:with-carry? true}))
+(defnp sub-m [state] (add* - (byte-at-hl state) state))
+(defnp sbb-m [state] (add* - (byte-at-hl state) state {:with-carry? true}))
 
 (defn- dad*
   "Implements all double-add instructions.
@@ -63,14 +63,14 @@
     (-> state
         (assoc :h (>> (bit-and ans 0xff00) 8))
         (assoc :l (bit-and ans 0xff))
-        (assoc-in [:cc :cy] (if (> ans 0xff) 1 0)))))
+        (assoc-in [:cc :cy] (if (pos? (bit-and ans 0xffff0000)) 1 0)))))
 
-(defn dad-b [{:keys [b c] :as state}] (dad* (| (<< b 8) c) state))
-(defn dad-d [{:keys [d e] :as state}] (dad* (| (<< d 8) e) state))
-(defn dad-h [{:keys [h l] :as state}] (dad* (| (<< h 8) l) state))
-(defn dad-sp [{:keys [sp] :as state}] (dad* sp state))
+(defnp dad-b [{:keys [b c] :as state}] (dad* (| (<< b 8) c) state))
+(defnp dad-d [{:keys [d e] :as state}] (dad* (| (<< d 8) e) state))
+(defnp dad-h [{:keys [h l] :as state}] (dad* (| (<< h 8) l) state))
+(defnp dad-sp [{:keys [sp] :as state}] (dad* sp state))
 
-(defn dcr
+(defnp dcr
   "Decrements value in register"
   [reg state]
   (let [ans (dec (state reg))]
@@ -81,7 +81,18 @@
         (assoc-in [:cc :p] (parity ans))
         (assoc-in [:cc :ac] (if (zero? (bit-and ans 0xf)) 1 0)))))
 
-(defn inx
+(defnp dcr-m
+  "Decrements value in memory"
+  [state]
+  (let [new-state (byte-to-hl state (dec (byte-at-hl state)))
+        ans (byte-at-hl state)]
+    (-> state
+        (assoc-in [:cc :z] (if (zero? ans) 1 0))
+        (assoc-in [:cc :s] (if (pos? (bit-and ans 0x80)) 1 0))
+        (assoc-in [:cc :p] (parity ans))
+        (assoc-in [:cc :ac] (if (zero? (bit-and ans 0xf)) 1 0)))))
+
+(defnp inx
   "Increments the 16-bit number held in the specified register pair"
   [reg-hi reg-lo state]
   (let [ans (inc (| (<< (state reg-hi) 8) (state reg-lo)))]
@@ -89,14 +100,14 @@
         (assoc reg-hi (>> (bit-and ans 0xff00) 8))
         (assoc reg-lo (bit-and ans 0xff)))))
 
-(defn inx-sp
+(defnp inx-sp
   "Increments the stack pointer"
   [state]
   (update state :sp (comp #(bit-and % 0xffff) inc)))
 
 ;; Branch group ---------------------------------------------------------------
 
-(defn jmp
+(defnp jmp
   "Implements all jump ops.
   
   Jumps to the address in the byte pair hi lo if (f state) is truthy."
@@ -106,12 +117,12 @@
     (-> (assoc :pc (| (<< hi 8) lo))
         (assoc :nopc? true))))
 
-(defn call
+(defnp call
   "Implements all call ops.
   
   Calls subroutine at the address in the byte pair hi lo if (f state) is truthy."
   [f state lo hi]
-  (let [next-op (+ (state :pc) 2)]
+  (let [next-op (+ (state :pc) 3)]
     (cond-> state
       (f state)
       (-> ; push address of next instruction onto stack (return address)
@@ -122,7 +133,7 @@
           (assoc :pc (| (<< hi 8) lo))
           (assoc :nopc? true)))))
 
-(defn ret
+(defnp ret
   "Implements all return ops.
 
   Returns program control to address at stack pointer if (f state) is truthy."
@@ -152,18 +163,18 @@
           (assoc-in [:cc :ac] 0)
           (assoc-in [:cc :p] (parity ans))))))
 
-(defn ana [reg state] (bool* bit-and (state reg) state))
-(defn xra [reg state] (bool* bit-xor (state reg) state))
-(defn ora [reg state] (bool* bit-or (state reg) state))
-(defn cma [reg state] (bool* bit-not (state reg) state))
-(defn ani [state b1] (bool* bit-and b1 state))
-(defn xri [state b1] (bool* bit-xor b1 state))
-(defn ori [state b1] (bool* bit-or b1 state))
-(defn ana-m [state] (bool* bit-and (byte-at-hl state) state))
-(defn xra-m [state] (bool* bit-xor (byte-at-hl state) state))
-(defn ora-m [state] (bool* bit-or (byte-at-hl state) state))
+(defnp ana [reg state] (bool* bit-and (state reg) state))
+(defnp xra [reg state] (bool* bit-xor (state reg) state))
+(defnp ora [reg state] (bool* bit-or (state reg) state))
+(defnp cma [reg state] (bool* bit-not (state reg) state))
+(defnp ani [state b1] (bool* bit-and b1 state))
+(defnp xri [state b1] (bool* bit-xor b1 state))
+(defnp ori [state b1] (bool* bit-or b1 state))
+(defnp ana-m [state] (bool* bit-and (byte-at-hl state) state))
+(defnp xra-m [state] (bool* bit-xor (byte-at-hl state) state))
+(defnp ora-m [state] (bool* bit-or (byte-at-hl state) state))
 
-(defn rrc
+(defnp rrc
   "Rotates accumulator register by one right shift"
   [state]
   (let [x (state :a)]
@@ -171,7 +182,7 @@
         (assoc :a (| (<< (bit-and x 1) 7) (>> x 1)))
         (assoc-in [:cc :cy] (bit-and x 1)))))
 
-(defn rlc
+(defnp rlc
   "Rotates accumulator register by one left shift"
   [state]
   (let [x (state :a)]
@@ -179,7 +190,7 @@
         (assoc :a (| (>> (bit-and x 0x80) 7) (bit-and (<< x 1) 0xff)))
         (assoc-in [:cc :cy] (if (pos? (bit-and x 0x80)) 1 0)))))
 
-(defn ral
+(defnp ral
   "Rotates accumulator register through the carry by one left shift"
   [state]
   (let [x (state :a)]
@@ -187,7 +198,7 @@
         (assoc :a (| (<< x 1) (get-in state [:cc :cy])))
         (assoc-in [:cc :cy] (if (pos? (bit-and x 0x80)) 1 0)))))
 
-(defn rar
+(defnp rar
   "Rotates accumulator register through the carry by one right shift"
   [state]
   (let [x (state :a)]
@@ -204,9 +215,9 @@
         (assoc-in [:cc :cy] (if (< (state :a) x) 1 0))
         (assoc-in [:cc :p] (parity x)))))
 
-(defn cmp [reg state] (cmp* (state reg) state))
-(defn cpi [state b] (cmp* b state))
-(defn cmp-m [state] (cmp* (byte-at-hl state) state))
+(defnp cmp [reg state] (cmp* (state reg) state))
+(defnp cpi [state b] (cmp* b state))
+(defnp cmp-m [state] (cmp* (byte-at-hl state) state))
 
 ;; ----------------------------------------------------------------------------
 
@@ -215,31 +226,35 @@
   [reg x state]
   (assoc state reg x))
 
-(defn mov [reg1 reg2 state] (mov* reg2 (state reg1) state))
-(defn mvi [reg state b] (mov* reg b state))
-(defn mov-from-m [reg state] (mov* reg (byte-at-hl state) state))
-(defn mov-to-m [reg state] (byte-to-hl state (state reg)))
+(defnp mov [reg1 reg2 state] (mov* reg2 (state reg1) state))
+(defnp mvi [reg state b] (mov* reg b state))
+(defnp mov-from-m [reg state] (mov* reg (byte-at-hl state) state))
+(defnp mov-to-m [reg state] (byte-to-hl state (state reg)))
 
-(defn lxi
+(defnp xchg
+  [{:keys [d e h l] :as state}]
+  (assoc state :d h, :e l, :h d, :l e))
+
+(defnp lxi
   "Implements all load immediate ops except LXI-SP."
   [hi lo state b1 b2]
   (assoc state hi b2, lo b1))
 
-(defn lxi-sp
+(defnp lxi-sp
   [state lo hi]
   (assoc state :sp (| (<< hi 8) lo)))
 
-(defn lda
+(defnp lda
   [state lo hi]
   (let [adr (| (<< hi 8) lo)]
     (assoc state :a (get-in state [:mem adr]))))
 
-(defn ldax
+(defnp ldax
   [hi lo state]
   (let [adr (| (<< (state hi) 8) (state lo))]
     (assoc state :a (get-in state [:mem adr]))))
 
-(defn sta
+(defnp sta
   [state lo hi]
   (let [adr (| (<< hi 8) lo)]
     (assoc-in state [:mem adr] (state :a))))
@@ -247,18 +262,18 @@
 ;; ----------------------------------------------------------------------------
 
 (defn- push*
-  [lo hi state]
+  [hi lo state]
   (-> state
-      (assoc-in [:mem (- (state :sp) 1)] lo)
-      (assoc-in [:mem (- (state :sp) 2)] hi)
+      (assoc-in [:mem (- (state :sp) 1)] hi)
+      (assoc-in [:mem (- (state :sp) 2)] lo)
       (update :sp - 2)))
 
-(defn push-b [{:keys [b c] :as state}] (push* b c state))
-(defn push-d [{:keys [d e] :as state}] (push* d e state))
-(defn push-h [{:keys [h l] :as state}] (push* h l state))
-(defn push-pc [{:keys [pc] :as state}] (push* (bit-and pc 0xff) (>> (bit-and pc 0xff00) 8) state))
+(defnp push-b [{:keys [b c] :as state}] (push* b c state))
+(defnp push-d [{:keys [d e] :as state}] (push* d e state))
+(defnp push-h [{:keys [h l] :as state}] (push* h l state))
+(defnp push-pc [{:keys [pc] :as state}] (push* (>> (bit-and pc 0xff00) 8) (bit-and pc 0xff) state))
 
-(defn push-psw
+(defnp push-psw
   [state]
   (let [{:keys [z s p cy ac]} (state :cc)
         psw (| z (<< s 1) (<< p 2) (<< cy 3) (<< ac 4))]
@@ -268,16 +283,17 @@
         (update :sp - 2))))
 
 (defn- pop*
-  [lo hi state]
+  [reg-hi reg-lo state]
   (-> state
-      (assoc lo (get-in state [:mem (state :sp)]))
-      (assoc hi (get-in state [:mem (inc (state :sp))]))))
+      (assoc reg-lo (get-in state [:mem (state :sp)]))
+      (assoc reg-hi (get-in state [:mem (inc (state :sp))]))
+      (update :sp + 2)))
 
-(defn pop-b [{:keys [b c] :as state}] (pop* b c state))
-(defn pop-d [{:keys [d e] :as state}] (pop* d e state))
-(defn pop-h [{:keys [h l] :as state}] (pop* h l state))
+(defnp pop-b [state] (pop* :b :c state))
+(defnp pop-d [state] (pop* :d :e state))
+(defnp pop-h [state] (pop* :h :l state))
 
-(defn pop-psw
+(defnp pop-psw
   [state]
   (let [psw (get-in state [:mem (state :sp)])]
     (-> state

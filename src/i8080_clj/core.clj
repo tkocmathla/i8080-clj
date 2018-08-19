@@ -2,9 +2,11 @@
   (:require
     [clojure.java.io :as io]
     [i8080-clj.ops :refer [ops]]
-    [i8080-clj.opfns :refer :all]))
+    [i8080-clj.opfns :refer :all]
+    [taoensso.tufte :refer [defnp]]))
 
-(defonce mem-16k (vec (repeat 0x10000 0)))
+; TODO make this an array for better performance
+(defonce mem-64k (vec (repeat 0x10000 0)))
 
 (def initial-state
   {; registers
@@ -18,7 +20,7 @@
 
    :sp 0        ; stack pointer
    :pc 0        ; program counter
-   :mem mem-16k ; memory
+   :mem mem-64k ; memory
 
    :int-enable? false ; enable interrupt
 
@@ -30,29 +32,28 @@
         :ac 0 ; aux carry
         }})
 
-(defn get-byte
+(defnp get-byte
   "Gets the ith byte from memory"
   [mem i]
   (bit-and (get mem i) 0xff))
 
-(defn get-args
+(defnp get-args
   [{:keys [mem pc]} size]
   (when (> size 1)
     (map (partial get-byte mem) (range (inc pc) (+ pc size)))))
 
-(defn disassemble-op
+(defnp disassemble-op
   [{:keys [mem pc] :as state}]
   (let [opcode (get-byte mem pc)
         {:keys [size] :as op} (ops opcode)]
     (assoc op :args (get-args state size))))
 
-(defn execute-op
+(defnp execute-op
   [state {:keys [f size args] :as op}]
-  #_(prn (:op op) args)
   (let [{:keys [nopc?] :as new-state} (apply f state args)]
     (cond-> (dissoc new-state :nopc?)
       (not nopc?) (update :pc + size))))
 
-(defn interrupt
+(defnp interrupt
   [state i]
-  (assoc (push-pc state) :pc (* 8 i), :int-enable? true))
+  (assoc (push-pc state) :pc (* 8 i), :int-enable? false))

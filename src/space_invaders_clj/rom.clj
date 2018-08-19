@@ -1,9 +1,10 @@
 (ns space-invaders-clj.rom
   (:require
     [clojure.java.io :as io]
-    [i8080-clj.core :refer [disassemble-op]]))
+    [i8080-clj.core :refer [disassemble-op]]
+    [taoensso.tufte :refer [defnp]]))
 
-(defn read-binary-file
+(defnp read-binary-file
   "Reads slurpable file into a vector of bytes"
   [file]
   (with-open [in (io/input-stream file)]
@@ -12,7 +13,7 @@
       (.read in buf 0 len)
       (vec buf))))
 
-(defn load-rom
+(defnp load-rom
   [state rom]
   (let [mem-len (count (state :mem))
         rom (read-binary-file (io/resource rom))

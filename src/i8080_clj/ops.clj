@@ -55,12 +55,12 @@
    0x32 {:op :STA, :size 3, :cycles 16, :f sta}
    0x33 {:op :INX-SP, :size 1, :cycles 5, :f inx-sp}
    0x34 {:op :INR-M, :size 1, :cycles 5}
-   0x35 {:op :DCR-M, :size 1, :cycles 5}
-   0x36 {:op :MVI-M, :size 2, :cycles 7}
+   0x35 {:op :DCR-M, :size 1, :cycles 5, :f dcr-m}
+   0x36 {:op :MVI-M, :size 2, :cycles 7, :f byte-to-hl}
    0x37 {:op :STC, :size 1, :cycles 4}
    0x38 {:op nil, :size 1, :cycles 4}
    0x39 {:op :DAD-SP, :size 1, :cycles 10, :f dad-sp}
-   0x3a {:op :LDA, :size 3, :cycles 16}
+   0x3a {:op :LDA, :size 3, :cycles 16, :f lda}
    0x3b {:op :DCX-SP, :size 1, :cycles 5}
    0x3c {:op :INR-A, :size 1, :cycles 5}
    0x3d {:op :DCR-A, :size 1, :cycles 5, :f (partial dcr :a)}
@@ -104,7 +104,7 @@
    0x63 {:op :MOV-H-E, :size 1, :cycles 5, :f (partial mov :e :h)}
    0x64 {:op :MOV-H-H, :size 1, :cycles 5, :f (partial mov :h :h)}
    0x65 {:op :MOV-H-L, :size 1, :cycles 5, :f (partial mov :l :h)}
-   0x66 {:op :MOV-H-M, :size 1, :cycles 7}
+   0x66 {:op :MOV-H-M, :size 1, :cycles 7, :f (partial mov-from-m :h)}
    0x67 {:op :MOV-H-A, :size 1, :cycles 5, :f (partial mov :a :h)}
    0x68 {:op :MOV-L-B, :size 1, :cycles 5, :f (partial mov :b :l)}
    0x69 {:op :MOV-L-C, :size 1, :cycles 5, :f (partial mov :c :l)}
@@ -112,14 +112,14 @@
    0x6b {:op :MOV-L-E, :size 1, :cycles 5, :f (partial mov :e :l)}
    0x6c {:op :MOV-L-H, :size 1, :cycles 5, :f (partial mov :h :l)}
    0x6d {:op :MOV-L-L, :size 1, :cycles 5, :f (partial mov :l :l)}
-   0x6e {:op :MOV-L-M, :size 1, :cycles 7}
+   0x6e {:op :MOV-L-M, :size 1, :cycles 7, :f (partial mov-from-m :l)}
    0x6f {:op :MOV-L-A, :size 1, :cycles 5, :f (partial mov :a :l)}
    0x70 {:op :MOV-M-B, :size 1, :cycles 5, :f (partial mov-to-m :b)}
    0x71 {:op :MOV-M-C, :size 1, :cycles 5, :f (partial mov-to-m :c)}
    0x72 {:op :MOV-M-D, :size 1, :cycles 5, :f (partial mov-to-m :d)}
    0x73 {:op :MOV-M-E, :size 1, :cycles 5, :f (partial mov-to-m :e)}
-   0x74 {:op :MOV-M-H, :size 1, :cycles 5}
-   0x75 {:op :MOV-M-L, :size 1, :cycles 5}
+   0x74 {:op :MOV-M-H, :size 1, :cycles 5, :f (partial mov-to-m :h)}
+   0x75 {:op :MOV-M-L, :size 1, :cycles 5, :f (partial mov-to-m :l)}
    0x76 {:op :HLT, :size 1, :cycles 7}
    0x77 {:op :MOV-M-A, :size 1, :cycles 5, :f (partial mov-to-m :a)}
    0x78 {:op :MOV-A-B, :size 1, :cycles 5, :f (partial mov :b :a)}
@@ -128,7 +128,7 @@
    0x7b {:op :MOV-A-E, :size 1, :cycles 5, :f (partial mov :e :a)}
    0x7c {:op :MOV-A-H, :size 1, :cycles 5, :f (partial mov :h :a)}
    0x7d {:op :MOV-A-L, :size 1, :cycles 5, :f (partial mov :l :a)}
-   0x7e {:op :MOV-A-M, :size 1, :cycles 7}
+   0x7e {:op :MOV-A-M, :size 1, :cycles 7, :f (partial mov-from-m :a)}
    0x7f {:op :MOV-A-A, :size 1, :cycles 5, :f (partial mov :a :a)}
 
    ; add registers
@@ -208,7 +208,7 @@
    0xbb {:op :CMP-E, :size 1, :cycles 4, :f (partial cmp :e)}
    0xbc {:op :CMP-H, :size 1, :cycles 4, :f (partial cmp :h)}
    0xbd {:op :CMP-L, :size 1, :cycles 4, :f (partial cmp :l)}
-   0xbe {:op :CMP-M, :size 1, :cycles 7}
+   0xbe {:op :CMP-M, :size 1, :cycles 7, :f cmp-m}
    0xbf {:op :CMP-A, :size 1, :cycles 4, :f (partial cmp :a)}
 
    ; return if not zero
@@ -278,7 +278,7 @@
    0xe9 {:op :PCHL, :size 1, :cycles 10}
    ; jump if even parity
    0xea {:op :JPE, :size 3, :cycles 10, :f (partial jmp (comp pos? :p :cc))}
-   0xeb {:op :XCHG, :size 1, :cycles 10}
+   0xeb {:op :XCHG, :size 1, :cycles 10, :f xchg}
    ; call if even parity
    0xec {:op :CPE, :size 3, :cycles 10, :f (partial call (comp pos? :p :cc))}
    0xed {:op nil, :size 1, :cycles 17}
@@ -286,13 +286,14 @@
    0xef {:op :RST-5, :size 1, :cycles 11}
    ; return if sign positive
    0xf0 {:op :RP, :size 1, :cycles 11, :f (partial ret (comp zero? :s :cc))}
-   0xf1 {:op :POP-PSW, :size 1, :cycles 10}
+   0xf1 {:op :POP-PSW, :size 1, :cycles 10, :f pop-psw}
    ; jump if sign positive
    0xf2 {:op :JP, :size 3, :cycles 10, :f (partial jmp (comp zero? :s :cc))}
+   ; disable interrupt
    0xf3 {:op :DI, :size 1, :cycles 18, :f (fn [state] (assoc state :int-enable? false))}
    ; call if sign positive
    0xf4 {:op :CP, :size 3, :cycles 17, :f (partial call (comp zero? :s :cc))}
-   0xf5 {:op :PUSH-PSW, :size 1, :cycles 11}
+   0xf5 {:op :PUSH-PSW, :size 1, :cycles 11, :f push-psw}
    0xf6 {:op :ORI, :size 2, :cycles 7, :f ori}
    0xf7 {:op :RST-6, :size 1, :cycles 11}
    ; return if sign negative
@@ -300,11 +301,12 @@
    0xf9 {:op :SPHL, :size 1, :cycles 5}
    ; jump if sign negative
    0xfa {:op :JM, :size 3, :cycles 10, :f (partial jmp (comp pos? :s :cc))}
+   ; enable interrupt
    0xfb {:op :EI, :size 1, :cycles 5, :f (fn [state] (assoc state :int-enable? true))}
    ; call if sign negative
    0xfc {:op :CM, :size 3, :cycles 17, :f (partial call (comp pos? :s :cc))}
    0xfd {:op nil, :size 1, :cycles 17}
-   0xfe {:op :CPI, :size 2, :cycles 7}
+   0xfe {:op :CPI, :size 2, :cycles 7, :f cpi}
    0xff {:op :RST-7, :size 1, :cycles 11}})
 
 
