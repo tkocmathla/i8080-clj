@@ -29,6 +29,8 @@
    :sh-hi 0
    :sh-off 0})
 
+(defonce state (atom {}))
+
 (defnp handle-in
   [{:keys [sh-lo sh-hi sh-off] :as machine} ^long port]
   (case port
@@ -37,6 +39,7 @@
     3 (let [x (| (<< sh-hi 8) sh-lo)
             sh-x (bit-and (>> x (- 8 sh-off)) 0xff)]
         (assoc-in machine [:state :a] sh-x))
+    ; else
     machine))
 
 (defnp handle-out
@@ -45,6 +48,7 @@
     (case port
       2 (assoc machine :sh-off (bit-and a 0x7))
       4 (assoc machine :sh-lo sh-hi :sh-hi a)
+      ; else
       machine)))
 
 (defn init-interrupts
@@ -61,22 +65,24 @@
   (let [{:keys [last-time next-time int-code state] :as next-machine} (init-interrupts machine now)
         {:keys [int-enable?]} state
         interrupt? (and int-enable? (> now next-time))]
-    (cond-> next-machine
+    (cond
       (and interrupt? (= 1 int-code)) 
-      (assoc :state (cpu/interrupt state 1), :next-time (+ now half-refresh-rate-in-usec), :int-code 2)
+      (assoc next-machine :state (cpu/interrupt state 1), :next-time (+ now half-refresh-rate-in-usec), :int-code 2)
 
       (and interrupt? (= 2 int-code))
-      (assoc :state (cpu/interrupt state 2), :next-time (+ now half-refresh-rate-in-usec), :int-code 1))))
+      (assoc next-machine :state (cpu/interrupt state 2), :next-time (+ now half-refresh-rate-in-usec), :int-code 1)
+      
+      :else next-machine)))
 
 (defn step-cpu
   ""
   [machine]
   (let [now (now-usec)]
     (loop [{:keys [last-time state] :as m} (handle-interrupt machine now)
-           cycles (* 2 (- now last-time))]
+           cycles (min (* 2 (- now last-time)) 1e5)]
       (if (pos? cycles)
         (let [op (cpu/disassemble-op state)]
-          #_(println (format "%04x" (get-in m [:state :pc])) (:op op) (:args op))
+          ;(println (format "%04x" (get-in m [:state :pc])) (:op op) (:args op))
           (cond
             (= :IN (:op op))
             (-> (handle-in m (first (:args op)))
@@ -93,61 +99,32 @@
                 (recur (- cycles (:cycles op))))))
         (assoc m :last-time now)))))
 
-(defn framebuffer [machine i]
-  (get-in machine [:state :mem (+ 0x2400 i)]))
-
-(defn byte->pixels [b]
-  (->> (iterate #(>> % 1) b)
-       (take 8)
-       (map #(bit-and % 1))
-       (map {0 0, 1 255})
-       (map vector (range))))
-
+(defn run []
+  (println (now-usec) "stepping cpu")
+  (reset! state (step-cpu @state))
+  (recur))
 
 ;; WIP Drawing ----------------------------------------------------------------
 
 (defn setup-state []
-  (q/frame-rate 30)
-  (assoc initial-machine :state (rom/load-rom cpu/initial-state "invaders.rom")))
+  (q/frame-rate 60)
+  (reset! state (assoc initial-machine :state (rom/load-rom cpu/initial-state "invaders.rom")))
+  (future (run)))
 
-(defn update-state [machine]
-  (step-cpu machine))
-
-(defn draw-state [machine]
+(defn draw-state []
   (let [pxs (q/pixels)]
-    ; y is 0..31 bytes
-    ; x is 0..224 bytes, steps of 32 (1 per y row)
-    (doseq [y (range (/ (q/height) 8))
-            x (range 0 (q/width) 32)
-            :let [xy (+ y (* x (/ (q/height) 8)))
-                  b (framebuffer machine xy)]
-            [i px] (byte->pixels b)]
-      (aset-int pxs (+ xy i) (q/color px))))
+    (doseq [xy (range 7168) ; 7168 = 224 * 256 / 8
+            :let [b (get-in @state [:state :mem (+ 0x2400 xy)])]]
+      (loop [b b, i 0]
+        (when (< i 8)
+          (aset-int pxs (+ (* xy 8) i) (q/color ({0 0, 1 255} (bit-and b 1))))
+          (recur (>> b 1) (inc i))))))
   (q/update-pixels))
 
-#_
 (q/defsketch space-invaders
   :renderer :p2d
+  ;       w x h
   :size [256 224] ; pre-rotated dimensions
   :setup setup-state
-  :update update-state
   :draw draw-state
-  :middleware [#_qm/pause-on-error qm/fun-mode]
-  #_#_:features [:no-safe-fns :no-bind-output])
-
-
-;; Profiling ------------------------------------------------------------------
-
-(tufte/add-basic-println-handler! {})
-#_
-(profile
-  {}
-  (->> (rom/load-rom cpu/initial-state "invaders.rom")
-       (assoc initial-machine :state)
-       (iterate step-cpu)
-       (#(nth % 12))
-       ; inspect machine
-       #_(#(assoc-in % [:state :mem] nil))
-       ; inspect framebuffer
-       (#(get-in % [:state :mem]))
-       (#(subvec % 0x2400 0x3fff))))
+  :features [:no-bind-output])

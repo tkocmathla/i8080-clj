@@ -49,7 +49,7 @@
    0x2c {:op :INR-L, :size 1, :cycles 5}
    0x2d {:op :DCR-L, :size 1, :cycles 5}
    0x2e {:op :MVI-L, :size 2, :cycles 7, :f (partial mvi :l)}
-   0x2f {:op :CMA, :size 1, :cycles 4}
+   0x2f {:op :CMA, :size 1, :cycles 4, :f cma}
    0x30 {:op :SIM, :size 1, :cycles 4}
    0x31 {:op :LXI-SP, :size 3, :cycles 10, :f lxi-sp}
    0x32 {:op :STA, :size 3, :cycles 16, :f sta}

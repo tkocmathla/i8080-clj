@@ -1,7 +1,8 @@
 (ns i8080-clj.disassemble-test
   (:require
     [clojure.test :refer :all]
-    [i8080-clj.core :refer :all]))
+    [i8080-clj.core :refer :all]
+    [i8080-clj.opfns :as opfns]))
 
 (deftest parity-test
   (is (= 2r10) 0)
@@ -55,8 +56,8 @@
         new-st (execute-op ini-st op)]
     (is (= (:op op) :DAD-B))
     (is (= 1 (:pc new-st)))
-    (is (= 0x03 (new-st :h)))
-    (is (= 0x00 (new-st :l)))))
+    (is (= 0x03 (:h new-st)))
+    (is (= 0x00 (:l new-st)))))
 
 (deftest dcr-b-test
   (let [ini-st (assoc initial-state :b 0x00 :mem [0x05])
@@ -64,8 +65,16 @@
         new-st (execute-op ini-st op)]
     (is (= (:op op) :DCR-B))
     (is (= 1 (:pc new-st)))
-    (is (= 0xff (new-st :b)))
+    (is (= 0xff (:b new-st)))
     (is (= 1 (get-in new-st [:cc :s])))))
+
+(deftest dcr-m-test
+  (let [ini-st (assoc initial-state :h 0x00 :l 0x01 :mem [0x35 0x20])
+        op (disassemble-op ini-st)
+        new-st (execute-op ini-st op)]
+    (is (= (:op op) :DCR-M))
+    (is (= 1 (:pc new-st)))
+    (is (= 0x1f (opfns/byte-at-hl new-st)))))
 
 (deftest inx-test
   (let [ini-st (assoc initial-state :e 0xff :mem [0x13])
@@ -73,8 +82,8 @@
         new-st (execute-op ini-st op)]
     (is (= (:op op) :INX-D))
     (is (= 1 (:pc new-st)))
-    (is (= 0x01 (new-st :d)))
-    (is (= 0x00 (new-st :e)))))
+    (is (= 0x01 (:d new-st)))
+    (is (= 0x00 (:e new-st)))))
 
 (deftest jmp-test
   (let [ini-st (assoc initial-state :mem [0xc3 0x05 0x00 0xff 0xff 0xff])
@@ -93,13 +102,22 @@
     (is (= 0x42 (:a new-st)))))
 
 (deftest lxi-d-test
-  (let [ini-st (assoc initial-state :e 1 :mem [0x11 0x01 0x02])
+  (let [ini-st (assoc initial-state :e 3 :mem [0x11 0x01 0x02])
         op (disassemble-op ini-st)
         new-st (execute-op ini-st op)]
     (is (= (:op op) :LXI-D))
     (is (= 3 (:pc new-st)))
-    (is (= 0x01 (:e ini-st)))
+    (is (= 0x01 (:e new-st)))
     (is (= 0x02 (:d new-st)))))
+
+(deftest lxi-h-test
+  (let [ini-st (assoc initial-state :mem [0x21 0x01 0x02])
+        op (disassemble-op ini-st)
+        new-st (execute-op ini-st op)]
+    (is (= (:op op) :LXI-H))
+    (is (= 3 (:pc new-st)))
+    (is (= 0x01 (:l new-st)))
+    (is (= 0x02 (:h new-st)))))
 
 (deftest lxi-sp-test
   (let [ini-st (assoc initial-state :mem [0x31 0x01 0x02])
@@ -134,13 +152,13 @@
     (is (= 1 (:pc new-st)))
     (is (= 0x42 (get-in new-st [:mem 0x03])))))
 
-(deftest mvi-b-test
-  (let [ini-st (assoc initial-state :c 1 :mem [0x06 0x42])
+(deftest mvi-a-test
+  (let [ini-st (assoc initial-state :mem [0x3e 0x42])
         op (disassemble-op ini-st)
         new-st (execute-op ini-st op)]
-    (is (= (:op op) :MVI-B))
+    (is (= (:op op) :MVI-A))
     (is (= 2 (:pc new-st)))
-    (is (= (:b new-st) 0x42))))
+    (is (= (:a new-st) 0x42))))
 
 (deftest nop-test
   (let [ini-st (assoc initial-state :mem [0x00])

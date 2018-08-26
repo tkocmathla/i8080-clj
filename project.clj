@@ -5,5 +5,4 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies
   [[org.clojure/clojure "1.9.0"]
-   [com.taoensso/tufte "2.0.1"]
    [quil "2.7.1"]])

@@ -15,10 +15,10 @@
 
 (defnp load-rom
   [state rom]
-  (let [mem-len (count (state :mem))
+  (let [mem-len (count (:mem state))
         rom (read-binary-file (io/resource rom))
         rom-len (count rom)]
-    (assoc state :mem (vec (concat rom (subvec (state :mem) rom-len))))))
+    (assoc state :mem (vec (concat rom (subvec (:mem state) rom-len))))))
 
 ; TODO emit lazy-seq instead
 (defn dump-rom
