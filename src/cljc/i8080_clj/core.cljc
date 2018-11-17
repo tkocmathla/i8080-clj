@@ -1,9 +1,7 @@
 (ns i8080-clj.core
   (:require
-    [clojure.java.io :as io]
     [i8080-clj.ops :refer [ops]]
-    [i8080-clj.opfns :refer :all]
-    [taoensso.tufte :refer [defnp]]))
+    [i8080-clj.opfns :refer [push-pc]]))
 
 (defonce mem-64k (vec (repeat 0x10000 0)))
 
@@ -18,7 +16,7 @@
   (toString [o]
     (doseq [k [:a :b :c :d :e :h :l]]
       (println (format "%s 0x%02x" k (get o k))))
-    (doseq [k [:sp :pc]]
+    (doseq [k [:pc :sp]]
       (println (format "%s 0x%04x" k (get o k))))
     (doseq [k [:int-enable? :nopc?]]
       (println (format "%s %s" k (get o k))))
@@ -53,23 +51,23 @@
         :ac 0 ; aux carry
         })}))
 
-(defnp get-byte
+(defn get-byte
   "Gets the ith byte from memory"
   [mem i]
   (bit-and (get mem i) 0xff))
 
-(defnp get-args
+(defn get-args
   [{:keys [mem pc]} size]
   (when (> size 1)
     (mapv (partial get-byte mem) (range (inc pc) (+ pc size)))))
 
-(defnp disassemble-op
+(defn disassemble-op
   [{:keys [mem pc] :as state}]
   (let [opcode (get-byte mem pc)
         {:keys [size] :as op} (ops opcode)]
     (assoc op :args (get-args state size))))
 
-(defnp execute-op
+(defn execute-op
   [state {:keys [f size args] :as op}]
   (let [{:keys [nopc?] :as new-state}
         (case size
@@ -79,6 +77,6 @@
     (cond-> (assoc new-state :nopc? false)
       (not nopc?) (update :pc + size))))
 
-(defnp interrupt
+(defn interrupt
   [state i]
   (assoc (push-pc state) :pc (* 8 i), :int-enable? false))
