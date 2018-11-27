@@ -32,7 +32,7 @@
 
 (defn get-byte
   "Gets the ith byte from memory"
-  [mem i]
+  [mem ^long i]
   (bit-and (get mem i) 0xff))
 
 (defn get-args
@@ -47,9 +47,9 @@
     (assoc op :args (get-args state size))))
 
 (defn execute-op
-  [state {:keys [f size args] :as op}]
+  [state {:keys [f ^long size args] :as op}]
   (let [{:keys [cpu/nopc?] :as new-state}
-        (case size
+        (condp = size
           1 (f state)
           2 (f state (args 0))
           3 (f state (args 0) (args 1)))]

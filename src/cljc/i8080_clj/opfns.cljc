@@ -8,7 +8,7 @@
 (def ^:dynamic *protect-mem* true)
 
 (defn write-mem
-  [state adr b]
+  [state ^long adr ^long b]
   (let [adr (bit-and adr 0xffff)]
     (when *protect-mem*
       (cond
@@ -23,7 +23,7 @@
 (defn parity
   "Returns 1 if byte b has an even number of 1's, or 0 otherwise"
   [^long b]
-  (if (pos? (mod b 2)) 0 1))
+  (if (= 0 (mod b 2)) 1 0))
 
 (defn byte-at-hl
   "Returns the byte at the address in the HL register pair"
