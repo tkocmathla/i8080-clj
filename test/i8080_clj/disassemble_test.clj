@@ -142,6 +142,13 @@
     (is (= 0x97 (:cpu/h new-st)))
     (is (= 0xff (:cpu/l new-st)))))
 
+(deftest ei-test
+  (let [ini-st (assoc cpu :cpu/mem [0xfb])
+        op (disassemble-op ini-st)
+        new-st (execute-op ini-st op)]
+    (is (= (:op op) :EI))
+    (is (true? (:cpu/int-enable? new-st)))))
+
 (deftest inr-test
   (let [ini-st (assoc cpu :cpu/c 0x99 :cpu/mem [0x0c])
         op (disassemble-op ini-st)

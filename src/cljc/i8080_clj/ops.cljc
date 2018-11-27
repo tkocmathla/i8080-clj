@@ -301,7 +301,7 @@
    ; jump if sign positive
    0xf2 {:op :JP, :size 3, :cycles 10, :f (partial f/jmp (comp zero? :cpu/cc/s))}
    ; disable interrupt
-   0xf3 {:op :DI, :size 1, :cycles 4, :f (fn [state] (assoc state :int-enable? false))}
+   0xf3 {:op :DI, :size 1, :cycles 4, :f (fn [state] (assoc state :cpu/int-enable? false))}
    ; call if sign positive
    0xf4 {:op :CP, :size 3, :cycles 17, :f (partial f/call (comp zero? :cpu/cc/s))}
    0xf5 {:op :PUSH-PSW, :size 1, :cycles 11, :f f/push-psw}
@@ -313,7 +313,7 @@
    ; jump if sign negative
    0xfa {:op :JM, :size 3, :cycles 10, :f (partial f/jmp (comp pos? :cpu/cc/s))}
    ; enable interrupt
-   0xfb {:op :EI, :size 1, :cycles 4, :f (fn [state] (assoc state :int-enable? true))}
+   0xfb {:op :EI, :size 1, :cycles 4, :f (fn [state] (assoc state :cpu/int-enable? true))}
    ; call if sign negative
    0xfc {:op :CM, :size 3, :cycles 17, :f (partial f/call (comp pos? :cpu/cc/s))}
    0xfd {:op nil, :size 1, :cycles 17}
