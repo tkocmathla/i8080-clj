@@ -1,15 +1,23 @@
 (ns i8080-clj.opfns
   "Helper functions for 8080 instruction set")
 
+(def ^:dynamic *protect-mem*
+  true)
+
 (def << bit-shift-left)
 (def >> bit-shift-right)
 (def | bit-or)
 
-(def ^:dynamic *protect-mem* true)
+(defn get-byte
+  "Gets the ith byte from memory"
+  [state ^long i]
+  (let [{:keys [^ints cpu/mem]} state]
+    (bit-and (aget mem i) 0xff)))
 
-(defn write-mem
+(defn write-byte
   [state ^long adr ^long b]
-  (let [adr (bit-and adr 0xffff)]
+  (let [{:keys [^ints cpu/mem]} state
+        adr (bit-and adr 0xffff)]
     (when *protect-mem*
       (cond
         (nil? b) (throw #?(:clj (Exception. "Can't write nil to memory!")
@@ -18,7 +26,15 @@
                                  :cljs (js/Error "Can't write to ROM!")))
         (>= adr 0x4000) (throw #?(:clj (Exception. "Can't write to game RAM!")
                                   :cljs (js/Error "Can't write to game RAM!")))))
-    (assoc-in state [:cpu/mem adr] (bit-and b 0xff))))
+    (aset-int mem adr (bit-and b 0xff))
+    state))
+
+(defn write-bytes
+  [state ^long adr xs]
+  (reduce
+    (fn [m [i x]] (write-byte m i x))
+    state
+    (map-indexed vector xs)))
 
 (defn parity
   "Returns 1 if byte b has an even number of 1's, or 0 otherwise"
@@ -29,13 +45,13 @@
   "Returns the byte at the address in the HL register pair"
   [state]
   (let [adr (bit-and (| (<< (:cpu/h state) 8) (:cpu/l state)) 0xffff)]
-    (get-in state [:cpu/mem adr])))
+    (get-byte state adr)))
 
 (defn byte-to-hl
   "Assigns the value b to the memory address in the HL register pair"
   [state b]
   (let [adr (| (<< (:cpu/h state) 8) (:cpu/l state))]
-    (write-mem state adr b)))
+    (write-byte state adr b)))
 
 ;; Arithmetic group -----------------------------------------------------------
 
@@ -187,8 +203,8 @@
     (cond-> state
       (f state)
       (-> ; push address of next instruction onto stack (return address)
-          (write-mem (- (:cpu/sp state) 1) (>> next-op 8))
-          (write-mem (- (:cpu/sp state) 2) next-op)
+          (write-byte (- (:cpu/sp state) 1) (>> next-op 8))
+          (write-byte (- (:cpu/sp state) 2) next-op)
           (update :cpu/sp - 2)
           ; jump to target address
           (assoc :cpu/pc (bit-and (| (<< hi 8) lo) 0xffff))
@@ -199,8 +215,8 @@
 
   Returns program control to address at stack pointer if (f state) is truthy."
   [f state]
-  (let [lo (get-in state [:cpu/mem (:cpu/sp state)])
-        hi (get-in state [:cpu/mem (inc (:cpu/sp state))])]
+  (let [lo (get-byte state (:cpu/sp state))
+        hi (get-byte state (inc (:cpu/sp state)))]
     (cond-> state
       (f state)
       (-> (assoc :cpu/pc (bit-and (| (<< hi 8) lo) 0xffff))
@@ -303,8 +319,8 @@
   [{:keys [cpu/h cpu/l cpu/sp cpu/mem] :as state}]
   (-> state
       (assoc :cpu/l (get mem sp), :cpu/h (get mem (inc sp)))
-      (assoc-in [:cpu/mem sp] l)
-      (assoc-in [:cpu/mem (inc sp)] h)))
+      (write-byte sp l)
+      (write-byte (inc sp) h)))
 
 (defn lxi
   "Implements all load immediate ops except LXI-SP."
@@ -318,46 +334,46 @@
 (defn lda
   [state lo hi]
   (let [adr (| (<< hi 8) lo)]
-    (assoc state :cpu/a (get-in state [:cpu/mem adr]))))
+    (assoc state :cpu/a (get-byte state adr))))
 
 (defn ldax
   [hi lo state]
   (let [adr (bit-and (| (<< (hi state) 8) (lo state)) 0xffff)]
-    (assoc state :cpu/a (get-in state [:cpu/mem adr]))))
+    (assoc state :cpu/a (get-byte state adr))))
 
 (defn lhld
   [state lo hi]
   (let [adr (| (<< hi 8) lo)]
     (assoc state
-           :cpu/l (get-in state [:cpu/mem adr])
-           :cpu/h (get-in state [:cpu/mem (inc adr)]))))
+           :cpu/l (get-byte state adr)
+           :cpu/h (get-byte state (inc adr)))))
 
 (defn sta
   "Store accumulator direct"
   [state lo hi]
   (let [adr (| (<< hi 8) lo)]
-    (write-mem state adr (:cpu/a state))))
+    (write-byte state adr (:cpu/a state))))
 
 (defn stax
   "Store accumulator"
   [hi lo state]
   (let [adr (bit-and (| (<< (hi state) 8) (lo state)) 0xffff)]
-    (assoc-in state [:cpu/mem adr] (:cpu/a state))))
+    (write-byte state adr (:cpu/a state))))
 
 (defn shld
   [state lo hi]
   (let [adr (| (<< hi 8) lo)]
     (-> state
-        (write-mem adr (:cpu/l state))
-        (write-mem (inc adr) (:cpu/h state)))))
+        (write-byte adr (:cpu/l state))
+        (write-byte (inc adr) (:cpu/h state)))))
 
 ;; Stack group ----------------------------------------------------------------
 
 (defn- push*
   [hi lo state]
   (-> state
-      (write-mem (- (:cpu/sp state) 1) hi)
-      (write-mem (- (:cpu/sp state) 2) lo)
+      (write-byte (- (:cpu/sp state) 1) hi)
+      (write-byte (- (:cpu/sp state) 2) lo)
       (update :cpu/sp - 2)))
 
 (defn push-b [{:keys [cpu/b cpu/c] :as state}] (push* b c state))
@@ -374,8 +390,8 @@
 (defn- pop*
   [reg-hi reg-lo state]
   (-> state
-      (assoc reg-lo (get-in state [:cpu/mem (:cpu/sp state)]))
-      (assoc reg-hi (get-in state [:cpu/mem (inc (:cpu/sp state))]))
+      (assoc reg-lo (get-byte state (:cpu/sp state)))
+      (assoc reg-hi (get-byte state (inc (:cpu/sp state))))
       (update :cpu/sp + 2)))
 
 (defn pop-b [state] (pop* :cpu/b :cpu/c state))
@@ -384,12 +400,16 @@
 
 (defn pop-psw
   [state]
-  (let [psw (get-in state [:cpu/mem (:cpu/sp state)])]
+  (let [psw (get-byte state (:cpu/sp state))]
     (-> state
-        (assoc :cpu/a (get-in state [:cpu/mem (inc (:cpu/sp state))]))
+        (assoc :cpu/a (get-byte state (inc (:cpu/sp state))))
         (assoc :cpu/cc/z (if (pos? (bit-and psw 0x01)) 1 0))
         (assoc :cpu/cc/s (if (pos? (bit-and psw 0x02)) 1 0))
         (assoc :cpu/cc/p (if (pos? (bit-and psw 0x04)) 1 0))
         (assoc :cpu/cc/cy (if (pos? (bit-and psw 0x08)) 1 0))
         (assoc :cpu/cc/ac (if (pos? (bit-and psw 0x10)) 1 0))
         (update :cpu/sp + 2))))
+
+(defn interrupt
+  [state i]
+  (assoc (push-pc state) :cpu/pc (* 8 i), :cpu/int-enable? false))
