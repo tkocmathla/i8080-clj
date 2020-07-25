@@ -3,15 +3,15 @@
     [clojure.test :refer [is deftest use-fixtures]]
     [i8080-clj.api :refer [get-args disassemble-op execute-op]]
     [i8080-clj.core :refer [cpu]]
-    [i8080-clj.opfns :refer [get-byte write-byte write-bytes] :as opfns]))
+    [i8080-clj.opfns :refer [get-byte parity write-byte write-bytes] :as opfns]))
 
 (use-fixtures :once (fn [f] (binding [opfns/*protect-mem* false] (f))))
 
 (deftest parity-test
-  (is (= 2r10) 0)
-  (is (= 2r11) 1)
-  (is (= 2r101) 1)
-  (is (= 2r100) 0))
+  (is (= (parity 2r10) 0))
+  (is (= (parity 2r11) 1))
+  (is (= (parity 2r101) 1))
+  (is (= (parity 2r100) 0)))
 
 ;; ----------------------------------------------------------------------------
 

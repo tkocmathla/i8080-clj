@@ -39,7 +39,7 @@
 (defn parity
   "Returns 1 if byte b has an even number of 1's, or 0 otherwise"
   [^long b]
-  (if (= 0 (mod b 2)) 1 0))
+  (if (= 0 (mod (Long/bitCount b) 2)) 1 0))
 
 (defn byte-at-hl
   "Returns the byte at the address in the HL register pair"
