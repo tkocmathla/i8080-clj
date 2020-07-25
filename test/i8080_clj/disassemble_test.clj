@@ -292,17 +292,24 @@
     (is (= 0x22 (:cpu/b new-st)))
     (is (= 0x11 (:cpu/c new-st)))))
 
-; FIXME adapt cc flags to new naming convention
-;(deftest pop-psw-test
-;  (let [ini-st (assoc (cpu) :cpu/sp 0x01 :cpu/mem [0xf1 2r00011111 0x42])
-;        op (disassemble-op ini-st)
-;        new-st (execute-op ini-st op)]
-;    (is (= (:op op) :POP-PSW))
-;    (is (= 1 (:cpu/pc new-st)))
-;    (is (= 3 (:cpu/sp new-st)))
-;    (is (every? #{0} (vals (:cc ini-st))))
-;    (is (every? #{1} (vals (:cc new-st))))
-;    (is (= 0x42 (:cpu/a new-st)))))
+(deftest pop-psw-test
+  (let [ini-st (-> (cpu) (write-bytes 0 [0xf1 2r00011111 0x42]) (assoc :cpu/sp 0x01))
+        op (disassemble-op ini-st)
+        new-st (execute-op ini-st op)]
+    (is (= (:op op) :POP-PSW))
+    (is (= 1 (:cpu/pc new-st)))
+    (is (= 3 (:cpu/sp new-st)))
+    (is (= 0 (:cpu/cc/z ini-st)))
+    (is (= 0 (:cpu/cc/s ini-st)))
+    (is (= 0 (:cpu/cc/p ini-st)))
+    (is (= 0 (:cpu/cc/cy ini-st)))
+    (is (= 0 (:cpu/cc/ac ini-st)))
+    (is (= 1 (:cpu/cc/z new-st)))
+    (is (= 1 (:cpu/cc/s new-st)))
+    (is (= 1 (:cpu/cc/p new-st)))
+    (is (= 1 (:cpu/cc/cy new-st)))
+    (is (= 1 (:cpu/cc/ac new-st)))
+    (is (= 0x42 (:cpu/a new-st)))))
 
 (deftest push-b-test
   (let [ini-st (-> (cpu) (write-bytes 0 [0xc5 0x00 0x00 0x00]) (assoc :cpu/b 0x11 :cpu/c 0x22 :cpu/sp 0x03))
@@ -314,18 +321,17 @@
     (is (= 0x22 (get-byte new-st (:cpu/sp new-st))))
     (is (= 0x11 (get-byte new-st (inc (:cpu/sp new-st)))))))
 
-; FIXME adapt cc flags to new naming convention
-;(deftest push-psw-test
-;  (binding [*protect-mem* false]
-;    (let [ini-st (assoc (cpu) :cpu/a 0x11 :cpu/sp 3 :cpu/mem [0xf5 0x00 0x00 0x00] :cc {:z 1 :s 1 :p 1 :cy 1 :ac 1})
-;          op (disassemble-op ini-st)
-;          new-st (execute-op ini-st op)]
-;      (is (= (:op op) :PUSH-PSW))
-;      (is (= 1 (:cpu/pc new-st)))
-;      (is (= 1 (:cpu/sp new-st)))
-;      (is (= 2r00000000 (get-in ini-st [:cpu/mem (:cpu/sp new-st)])))
-;      (is (= 2r00011111 (get-in new-st [:cpu/mem (:cpu/sp new-st)])))
-;      (is (= 0x11 (get-in new-st [:cpu/mem (inc (:cpu/sp new-st))]))))))
+(deftest push-psw-test
+  (let [ini-st (-> (cpu)
+                   (write-bytes 0 [0xf5 0x00 0x00 0x00])
+                   (assoc :cpu/a 0x11 :cpu/sp 3 :cpu/cc/z 1 :cpu/cc/s 1 :cpu/cc/p 1 :cpu/cc/cy 1 :cpu/cc/ac 1))
+        op (disassemble-op ini-st)
+        new-st (execute-op ini-st op)]
+    (is (= (:op op) :PUSH-PSW))
+    (is (= 1 (:cpu/pc new-st)))
+    (is (= 1 (:cpu/sp new-st)))
+    (is (= 2r00011111 (get-in new-st [:cpu/mem 1])))
+    (is (= 0x11 (get-in new-st [:cpu/mem 2])))))
 
 (deftest ral-test
   (let [ini-st (-> (cpu) (write-byte 0 0x17) (assoc :cpu/a 0xb5))
