@@ -63,12 +63,12 @@
   [f x state & [{:keys [with-carry?]}]]
   (let [ans (cond-> (f (:cpu/a state) x)
               with-carry? (f (:cpu/cc/cy state)))]
-    (-> state
-        (assoc :cpu/cc/z (if (zero? (bit-and ans 0xff)) 1 0))
-        (assoc :cpu/cc/s (if (= 0x80 (bit-and ans 0x80)) 1 0))
-        (assoc :cpu/cc/cy (if (> ans 0xff) 1 0))
-        (assoc :cpu/cc/p (parity ans))
-        (assoc :cpu/a (bit-and ans 0xff)))))
+    (assoc state
+           :cpu/cc/z (if (zero? (bit-and ans 0xff)) 1 0)
+           :cpu/cc/s (if (= 0x80 (bit-and ans 0x80)) 1 0)
+           :cpu/cc/cy (if (> ans 0xff) 1 0)
+           :cpu/cc/p (parity ans)
+           :cpu/a (bit-and ans 0xff))))
 
 (defn add [reg state] (add* + (reg state) state))
 (defn adc [reg state] (add* + (reg state) state {:with-carry? true}))
@@ -89,10 +89,10 @@
   x - value to add with register pair hl"
   [x state]
   (let [ans (+ x (| (<< (:cpu/h state) 8) (:cpu/l state)))]
-    (-> state
-        (assoc :cpu/h (bit-and (>> ans 8) 0xff))
-        (assoc :cpu/l (bit-and ans 0xff))
-        (assoc :cpu/cc/cy (if (pos? (bit-and ans 0xffff0000)) 1 0)))))
+    (assoc state
+           :cpu/h (bit-and (>> ans 8) 0xff)
+           :cpu/l (bit-and ans 0xff)
+           :cpu/cc/cy (if (pos? (bit-and ans 0xffff0000)) 1 0))))
 
 (defn dad-b [{:keys [cpu/b cpu/c] :as state}] (dad* (| (<< b 8) c) state))
 (defn dad-d [{:keys [cpu/d cpu/e] :as state}] (dad* (| (<< d 8) e) state))
@@ -103,53 +103,53 @@
   "Increments value in register"
   [reg state]
   (let [ans (inc (reg state))]
-    (-> state
-        (assoc reg (bit-and ans 0xff))
-        (assoc :cpu/cc/z (if (zero? ans) 1 0))
-        (assoc :cpu/cc/s (if (= 0x80 (bit-and ans 0x80)) 1 0))
-        (assoc :cpu/cc/p (parity ans))
-        (assoc :cpu/cc/ac (if (zero? (bit-and ans 0xf)) 1 0)))))
+    (assoc state
+           reg (bit-and ans 0xff)
+           :cpu/cc/z (if (zero? ans) 1 0)
+           :cpu/cc/s (if (= 0x80 (bit-and ans 0x80)) 1 0)
+           :cpu/cc/p (parity ans)
+           :cpu/cc/ac (if (zero? (bit-and ans 0xf)) 1 0))))
 
 (defn inr-m
   "Increments value in memory"
   [state]
   (let [new-state (byte-to-hl state (inc (byte-at-hl state)))
         ans (byte-at-hl new-state)]
-    (-> new-state
-        (assoc :cpu/cc/z (if (zero? ans) 1 0))
-        (assoc :cpu/cc/s (if (= 0x80 (bit-and ans 0x80)) 1 0))
-        (assoc :cpu/cc/p (parity ans))
-        (assoc :cpu/cc/ac (if (zero? (bit-and ans 0xf)) 1 0)))))
+    (assoc new-state
+           :cpu/cc/z (if (zero? ans) 1 0)
+           :cpu/cc/s (if (= 0x80 (bit-and ans 0x80)) 1 0)
+           :cpu/cc/p (parity ans)
+           :cpu/cc/ac (if (zero? (bit-and ans 0xf)) 1 0))))
 
 (defn dcr
   "Decrements value in register"
   [reg state]
   (let [ans (dec (reg state))]
-    (-> state
-        (assoc reg (bit-and ans 0xff))
-        (assoc :cpu/cc/z (if (zero? ans) 1 0))
-        (assoc :cpu/cc/s (if (= 0x80 (bit-and ans 0x80)) 1 0))
-        (assoc :cpu/cc/p (parity ans))
-        (assoc :cpu/cc/ac (if (zero? (bit-and ans 0xf)) 1 0)))))
+    (assoc state
+           reg (bit-and ans 0xff)
+           :cpu/cc/z (if (zero? ans) 1 0)
+           :cpu/cc/s (if (= 0x80 (bit-and ans 0x80)) 1 0)
+           :cpu/cc/p (parity ans)
+           :cpu/cc/ac (if (zero? (bit-and ans 0xf)) 1 0))))
 
 (defn dcr-m
   "Decrements value in memory"
   [state]
   (let [new-state (byte-to-hl state (dec (byte-at-hl state)))
         ans (byte-at-hl new-state)]
-    (-> new-state
-        (assoc :cpu/cc/z (if (zero? ans) 1 0))
-        (assoc :cpu/cc/s (if (= 0x80 (bit-and ans 0x80)) 1 0))
-        (assoc :cpu/cc/p (parity ans))
-        (assoc :cpu/cc/ac (if (zero? (bit-and ans 0xf)) 1 0)))))
+    (assoc new-state
+           :cpu/cc/z (if (zero? ans) 1 0)
+           :cpu/cc/s (if (= 0x80 (bit-and ans 0x80)) 1 0)
+           :cpu/cc/p (parity ans)
+           :cpu/cc/ac (if (zero? (bit-and ans 0xf)) 1 0))))
 
 (defn inx
   "Increments the 16-bit number held in the specified register pair"
   [reg-hi reg-lo state]
   (let [ans (inc (| (<< (reg-hi state) 8) (reg-lo state)))]
-    (-> state
-        (assoc reg-hi (bit-and (>> ans 8) 0xff))
-        (assoc reg-lo (bit-and ans 0xff)))))
+    (assoc state
+           reg-hi (bit-and (>> ans 8) 0xff)
+           reg-lo (bit-and ans 0xff))))
 
 (defn inx-sp
   "Increments the stack pointer"
@@ -160,9 +160,9 @@
   "Decrements the 16-bit number held in the specified register pair"
   [reg-hi reg-lo state]
   (let [ans (dec (| (<< (reg-hi state) 8) (reg-lo state)))]
-    (-> state
-        (assoc reg-hi (bit-and (>> ans 8) 0xff))
-        (assoc reg-lo (bit-and ans 0xff)))))
+    (assoc state
+           reg-hi (bit-and (>> ans 8) 0xff)
+           reg-lo (bit-and ans 0xff))))
 
 (defn dcx-sp
   "Decrements the stack pointer"
@@ -174,12 +174,12 @@
   (let [new-st (cond-> state (> (bit-and (:cpu/a state) 0xf) 9) (update :cpu/a + 6))]
     (if (> (bit-and (:cpu/a new-st) 0xf0) 0x90)
       (let [ans (+ (:cpu/a new-st) 0x60)]
-        (-> (assoc new-st :cpu/a (bit-and ans 0xff))
-            (assoc :cpu/cc/z (if (zero? ans) 1 0))
-            (assoc :cpu/cc/s (if (= 0x80 (bit-and ans 0x80)) 1 0))
-            (assoc :cpu/cc/p (parity ans))
-            (assoc :cpu/cc/cy (if (> ans 0xff) 1 0))
-            (assoc :cpu/cc/ac (if (zero? (bit-and ans 0xf)) 1 0))))
+        (assoc new-st :cpu/a (bit-and ans 0xff)
+               :cpu/cc/z (if (zero? ans) 1 0)
+               :cpu/cc/s (if (= 0x80 (bit-and ans 0x80)) 1 0)
+               :cpu/cc/p (parity ans)
+               :cpu/cc/cy (if (> ans 0xff) 1 0)
+               :cpu/cc/ac (if (zero? (bit-and ans 0xf)) 1 0)))
       state)))
 
 ;; Branch group ---------------------------------------------------------------
@@ -191,8 +191,8 @@
   [f state lo hi]
   (cond-> state
     (f state)
-    (-> (assoc :cpu/pc (bit-and (| (<< hi 8) lo) 0xffff))
-        (assoc :cpu/nopc? true))))
+    (assoc :cpu/pc (bit-and (| (<< hi 8) lo) 0xffff)
+           :cpu/nopc? true)))
 
 (defn call
   "Implements all call ops.
@@ -207,8 +207,8 @@
           (write-byte (- (:cpu/sp state) 2) next-op)
           (update :cpu/sp - 2)
           ; jump to target address
-          (assoc :cpu/pc (bit-and (| (<< hi 8) lo) 0xffff))
-          (assoc :cpu/nopc? true)))))
+          (assoc :cpu/pc (bit-and (| (<< hi 8) lo) 0xffff)
+                 :cpu/nopc? true)))))
 
 (defn ret
   "Implements all return ops.
@@ -219,13 +219,15 @@
         hi (get-byte state (inc (:cpu/sp state)))]
     (cond-> state
       (f state)
-      (-> (assoc :cpu/pc (bit-and (| (<< hi 8) lo) 0xffff))
-          (update :cpu/sp + 2)
-          (assoc :cpu/nopc? true)))))
+      (-> (assoc :cpu/pc (bit-and (| (<< hi 8) lo) 0xffff)
+                 :cpu/nopc? true)
+          (update :cpu/sp + 2)))))
 
 (defn pchl
   [{:keys [cpu/h cpu/l] :as state}]
-  (assoc state :cpu/pc (bit-and (| (<< h 8) l) 0xffff), :cpu/nopc? true))
+  (assoc state
+         :cpu/pc (bit-and (| (<< h 8) l) 0xffff)
+         :cpu/nopc? true))
 
 ;; Logical group --------------------------------------------------------------
 
@@ -236,12 +238,13 @@
   x - value against which to compute boolean function with register a"
   [f x state]
   (let [ans (bit-and (f (:cpu/a state) x) 0xff)]
-    (-> (assoc state :cpu/a ans)
-        (assoc :cpu/cc/z (if (zero? ans) 1 0))
-        (assoc :cpu/cc/s (if (= 0x80 (bit-and ans 0x80)) 1 0))
-        (assoc :cpu/cc/cy 0)
-        (assoc :cpu/cc/ac 0)
-        (assoc :cpu/cc/p (parity ans)))))
+    (assoc state
+           :cpu/a ans
+           :cpu/cc/z (if (zero? ans) 1 0)
+           :cpu/cc/s (if (= 0x80 (bit-and ans 0x80)) 1 0)
+           :cpu/cc/cy 0
+           :cpu/cc/ac 0
+           :cpu/cc/p (parity ans))))
 
 (defn ana [reg state] (bool* bit-and (reg state) state))
 (defn xra [reg state] (bool* bit-xor (reg state) state))
@@ -258,42 +261,42 @@
   "Rotates accumulator register by one right shift"
   [state]
   (let [x (:cpu/a state)]
-    (-> state
-        (assoc :cpu/a (bit-and (| (<< (bit-and x 1) 7) (>> x 1)) 0xff))
-        (assoc :cpu/cc/cy (bit-and x 1)))))
+    (assoc state
+           :cpu/a (bit-and (| (<< (bit-and x 1) 7) (>> x 1)) 0xff)
+           :cpu/cc/cy (bit-and x 1))))
 
 (defn rlc
   "Rotates accumulator register by one left shift"
   [state]
   (let [x (:cpu/a state)]
-    (-> state
-        (assoc :cpu/a (bit-and (| (>> (bit-and x 0x80) 7) (bit-and (<< x 1) 0xff)) 0xff))
-        (assoc :cpu/cc/cy (if (pos? (bit-and x 0x80)) 1 0)))))
+    (assoc state
+           :cpu/a (bit-and (| (>> (bit-and x 0x80) 7) (bit-and (<< x 1) 0xff)) 0xff)
+           :cpu/cc/cy (if (pos? (bit-and x 0x80)) 1 0))))
 
 (defn ral
   "Rotates accumulator register through the carry by one left shift"
   [state]
   (let [x (:cpu/a state)]
-    (-> state
-        (assoc :cpu/a (bit-and (| (<< x 1) (:cpu/cc/cy state)) 0xff))
-        (assoc :cpu/cc/cy (if (pos? (bit-and x 0x80)) 1 0)))))
+    (assoc state
+           :cpu/a (bit-and (| (<< x 1) (:cpu/cc/cy state)) 0xff)
+           :cpu/cc/cy (if (pos? (bit-and x 0x80)) 1 0))))
 
 (defn rar
   "Rotates accumulator register through the carry by one right shift"
   [state]
   (let [x (:cpu/a state)]
-    (-> state
-        (assoc :cpu/a (bit-and (| (<< (:cpu/cc/cy state) 7) (>> x 1)) 0xff))
-        (assoc :cpu/cc/cy (bit-and x 1)))))
+    (assoc state
+           :cpu/a (bit-and (| (<< (:cpu/cc/cy state) 7) (>> x 1)) 0xff)
+           :cpu/cc/cy (bit-and x 1))))
 
 (defn- cmp*
   [x state]
   (let [ans (- (:cpu/a state) x)]
-    (-> state
-        (assoc :cpu/cc/z (if (zero? ans) 1 0))
-        (assoc :cpu/cc/s (if (= 0x80 (bit-and ans 0x80)) 1 0))
-        (assoc :cpu/cc/cy (if (> x (:cpu/a state)) 1 0))
-        (assoc :cpu/cc/p (parity ans)))))
+    (assoc state
+           :cpu/cc/z (if (zero? ans) 1 0)
+           :cpu/cc/s (if (= 0x80 (bit-and ans 0x80)) 1 0)
+           :cpu/cc/cy (if (> x (:cpu/a state)) 1 0)
+           :cpu/cc/p (parity ans))))
 
 (defn cmp [reg state] (cmp* (reg state) state))
 (defn cpi [state x] (cmp* x state))
@@ -401,13 +404,13 @@
 (defn pop-psw
   [state]
   (let [psw (get-byte state (:cpu/sp state))]
-    (-> state
-        (assoc :cpu/a (get-byte state (inc (:cpu/sp state))))
-        (assoc :cpu/cc/z (if (pos? (bit-and psw 0x01)) 1 0))
-        (assoc :cpu/cc/s (if (pos? (bit-and psw 0x02)) 1 0))
-        (assoc :cpu/cc/p (if (pos? (bit-and psw 0x04)) 1 0))
-        (assoc :cpu/cc/cy (if (pos? (bit-and psw 0x08)) 1 0))
-        (assoc :cpu/cc/ac (if (pos? (bit-and psw 0x10)) 1 0))
+    (-> (assoc state
+               :cpu/a (get-byte state (inc (:cpu/sp state)))
+               :cpu/cc/z (if (pos? (bit-and psw 0x01)) 1 0)
+               :cpu/cc/s (if (pos? (bit-and psw 0x02)) 1 0)
+               :cpu/cc/p (if (pos? (bit-and psw 0x04)) 1 0)
+               :cpu/cc/cy (if (pos? (bit-and psw 0x08)) 1 0)
+               :cpu/cc/ac (if (pos? (bit-and psw 0x10)) 1 0))
         (update :cpu/sp + 2))))
 
 (defn interrupt
