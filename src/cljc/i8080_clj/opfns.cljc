@@ -15,6 +15,7 @@
     (bit-and (aget mem i) 0xff)))
 
 (defn write-byte
+  "Writes b to memory at adr"
   [state ^long adr ^long b]
   (let [{:keys [^ints cpu/mem]} state
         adr (bit-and adr 0xffff)]
@@ -30,6 +31,7 @@
     state))
 
 (defn write-bytes
+  "Writes values in xs to memory at adr"
   [state ^long adr xs]
   (reduce
     (fn [m [i x]] (write-byte m i x))
@@ -170,6 +172,7 @@
   (update state :cpu/sp (comp #(bit-and % 0xffff) dec)))
 
 (defn daa
+  "Decimal adjust accumulator"
   [state]
   (let [new-st (cond-> state (> (bit-and (:cpu/a state) 0xf) 9) (update :cpu/a + 6))]
     (if (> (bit-and (:cpu/a new-st) 0xf0) 0x90)
@@ -224,6 +227,7 @@
           (update :cpu/sp + 2)))))
 
 (defn pchl
+  "Loads the program counter with the address contained in the HL register pair"
   [{:keys [cpu/h cpu/l] :as state}]
   (assoc state
          :cpu/pc (bit-and (| (<< h 8) l) 0xffff)
@@ -290,6 +294,7 @@
            :cpu/cc/cy (bit-and x 1))))
 
 (defn- cmp*
+  "Implements all compare ops"
   [x state]
   (let [ans (- (:cpu/a state) x)]
     (assoc state
@@ -315,10 +320,12 @@
 (defn mov-to-m [reg state] (byte-to-hl state (reg state)))
 
 (defn xchg
+  "Exchange registers"
   [{:keys [cpu/d cpu/e cpu/h cpu/l] :as state}]
   (assoc state :cpu/d h, :cpu/e l, :cpu/h d, :cpu/l e))
 
 (defn xthl
+  "Exchange stack"
   [{:keys [cpu/h cpu/l cpu/sp cpu/mem] :as state}]
   (-> state
       (assoc :cpu/l (get mem sp), :cpu/h (get mem (inc sp)))
@@ -331,20 +338,24 @@
   (assoc state hi b2, lo b1))
 
 (defn lxi-sp
+  "Load immediate to stack pointer"
   [state lo hi]
   (assoc state :cpu/sp (| (<< hi 8) lo)))
 
 (defn lda
+  "Load accumulator direct"
   [state lo hi]
   (let [adr (| (<< hi 8) lo)]
     (assoc state :cpu/a (get-byte state adr))))
 
 (defn ldax
+  "Load accumulator"
   [hi lo state]
   (let [adr (bit-and (| (<< (hi state) 8) (lo state)) 0xffff)]
     (assoc state :cpu/a (get-byte state adr))))
 
 (defn lhld
+  "Load h and l direct"
   [state lo hi]
   (let [adr (| (<< hi 8) lo)]
     (assoc state
@@ -364,6 +375,7 @@
     (write-byte state adr (:cpu/a state))))
 
 (defn shld
+  "Store h and l direct"
   [state lo hi]
   (let [adr (| (<< hi 8) lo)]
     (-> state
@@ -373,6 +385,7 @@
 ;; Stack group ----------------------------------------------------------------
 
 (defn- push*
+  "Implements all push ops"
   [hi lo state]
   (-> state
       (write-byte (- (:cpu/sp state) 1) hi)
@@ -391,6 +404,7 @@
     (push* (:cpu/a state) psw state)))
 
 (defn- pop*
+  "Implements all pop ops except POP-PSW"
   [reg-hi reg-lo state]
   (-> state
       (assoc reg-lo (get-byte state (:cpu/sp state)))
@@ -414,5 +428,6 @@
         (update :cpu/sp + 2))))
 
 (defn interrupt
+  "Handles interrupts"
   [state i]
   (assoc (push-pc state) :cpu/pc (* 8 i), :cpu/int-enable? false))
