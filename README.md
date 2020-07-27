@@ -8,7 +8,7 @@ This project owes a lot to [Emulator 101](http://www.emulator101.com) for inspir
 
 Since i8080-clj is a CPU emulator, it doesn't do much on its own. Like any processor, it needs a binary executable to do something interesting. 
 
-To really dive in and learn about the instruction set, check out the [i8080 Programmer's Manual](https://github.com/tkocmathla/i8080-clj/blob/master/resources/8080%20Programmers%20Manual.pdf) in this repository. 
+To really dive in and learn about the instruction set, check out the [i8080 Programmer's Manual](resources/8080%20Programmers%20Manual.pdf) in this repository. 
 
 Otherwise, try running [Space Invaders](https://github.com/tkocmathla/space-invaders-clj)!
 
