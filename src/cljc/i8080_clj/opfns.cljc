@@ -15,24 +15,24 @@
     (bit-and (aget mem i) 0xff)))
 
 (defn write-byte
-  "Writes b to memory at adr"
-  [state ^long adr ^long b]
+  "Writes b to memory at addr"
+  [state ^long addr ^long b]
   (let [{:keys [^ints cpu/mem]} state
-        adr (bit-and adr 0xffff)]
+        addr (bit-and addr 0xffff)]
     (when *protect-mem*
       (cond
         (nil? b) (throw #?(:clj (Exception. "Can't write nil to memory!")
                            :cljs (js/Error "Can't write nil to memory!")))
-        (< adr 0x2000) (throw #?(:clj (Exception. "Can't write to ROM!")
+        (< addr 0x2000) (throw #?(:clj (Exception. "Can't write to ROM!")
                                  :cljs (js/Error "Can't write to ROM!")))
-        (>= adr 0x4000) (throw #?(:clj (Exception. "Can't write to game RAM!")
+        (>= addr 0x4000) (throw #?(:clj (Exception. "Can't write to game RAM!")
                                   :cljs (js/Error "Can't write to game RAM!")))))
-    (aset-int mem adr (bit-and b 0xff))
+    (aset-int mem addr (bit-and b 0xff))
     state))
 
 (defn write-bytes
-  "Writes values in xs to memory at adr"
-  [state ^long adr xs]
+  "Writes values in xs to memory at addr"
+  [state ^long addr xs]
   (reduce
     (fn [m [i x]] (write-byte m i x))
     state
@@ -46,14 +46,14 @@
 (defn byte-at-hl
   "Returns the byte at the address in the HL register pair"
   [state]
-  (let [adr (bit-and (| (<< (:cpu/h state) 8) (:cpu/l state)) 0xffff)]
-    (get-byte state adr)))
+  (let [addr (bit-and (| (<< (:cpu/h state) 8) (:cpu/l state)) 0xffff)]
+    (get-byte state addr)))
 
 (defn byte-to-hl
   "Assigns the value b to the memory address in the HL register pair"
   [state b]
-  (let [adr (| (<< (:cpu/h state) 8) (:cpu/l state))]
-    (write-byte state adr b)))
+  (let [addr (| (<< (:cpu/h state) 8) (:cpu/l state))]
+    (write-byte state addr b)))
 
 ;; Arithmetic group -----------------------------------------------------------
 
@@ -345,42 +345,42 @@
 (defn lda
   "Load accumulator direct"
   [state lo hi]
-  (let [adr (| (<< hi 8) lo)]
-    (assoc state :cpu/a (get-byte state adr))))
+  (let [addr (| (<< hi 8) lo)]
+    (assoc state :cpu/a (get-byte state addr))))
 
 (defn ldax
   "Load accumulator"
   [hi lo state]
-  (let [adr (bit-and (| (<< (hi state) 8) (lo state)) 0xffff)]
-    (assoc state :cpu/a (get-byte state adr))))
+  (let [addr (bit-and (| (<< (hi state) 8) (lo state)) 0xffff)]
+    (assoc state :cpu/a (get-byte state addr))))
 
 (defn lhld
   "Load h and l direct"
   [state lo hi]
-  (let [adr (| (<< hi 8) lo)]
+  (let [addr (| (<< hi 8) lo)]
     (assoc state
-           :cpu/l (get-byte state adr)
-           :cpu/h (get-byte state (inc adr)))))
+           :cpu/l (get-byte state addr)
+           :cpu/h (get-byte state (inc addr)))))
 
 (defn sta
   "Store accumulator direct"
   [state lo hi]
-  (let [adr (| (<< hi 8) lo)]
-    (write-byte state adr (:cpu/a state))))
+  (let [addr (| (<< hi 8) lo)]
+    (write-byte state addr (:cpu/a state))))
 
 (defn stax
   "Store accumulator"
   [hi lo state]
-  (let [adr (bit-and (| (<< (hi state) 8) (lo state)) 0xffff)]
-    (write-byte state adr (:cpu/a state))))
+  (let [addr (bit-and (| (<< (hi state) 8) (lo state)) 0xffff)]
+    (write-byte state addr (:cpu/a state))))
 
 (defn shld
   "Store h and l direct"
   [state lo hi]
-  (let [adr (| (<< hi 8) lo)]
+  (let [addr (| (<< hi 8) lo)]
     (-> state
-        (write-byte adr (:cpu/l state))
-        (write-byte (inc adr) (:cpu/h state)))))
+        (write-byte addr (:cpu/l state))
+        (write-byte (inc addr) (:cpu/h state)))))
 
 ;; Stack group ----------------------------------------------------------------
 
