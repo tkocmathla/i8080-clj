@@ -2,6 +2,7 @@
   "Helper functions for 8080 instruction set")
 
 (def ^:dynamic *protect-mem*
+  "When true, throws an exception on illegal memory accesses"
   true)
 
 (def << bit-shift-left)
