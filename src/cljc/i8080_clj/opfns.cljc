@@ -32,10 +32,10 @@
     state))
 
 (defn write-bytes
-  "Writes values in xs to memory at addr"
+  "Writes values in xs to sequential locations in memory starting at addr"
   [state ^long addr xs]
   (reduce
-    (fn [m [i x]] (write-byte m i x))
+    (fn [m [i x]] (write-byte m (+ addr i) x))
     state
     (map-indexed vector xs)))
 
