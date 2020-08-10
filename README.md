@@ -42,6 +42,12 @@ The i8080 is a relatively simple processor to emulate, since it's 8 bit and only
 
 This means executing an instruction is as simple as calling a function that takes a map of the current state as input and returns the next state as output.
 
+## Installation
+
+To install, add the following to your project `:dependencies`:
+
+    [i8080-clj "0.4.0"]
+
 ## Running the tests
 
 Most instructions have an associated unit test. To run them all, just do:

@@ -1,4 +1,4 @@
-(defproject i8080-clj "0.3.0-SNAPSHOT"
+(defproject i8080-clj "0.4.0"
   :description "Intel 8080 emulation in Clojure"
   :url "https://github.com/tkocmathla/i8080-clj"
   :license {:name "Eclipse Public License"
