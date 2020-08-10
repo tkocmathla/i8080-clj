@@ -20,8 +20,8 @@
   [state {:keys [f ^long size args] :as op}]
   (let [{:keys [cpu/nopc?] :as new-state}
         (condp = size
-          1 (f state)
-          2 (f state (args 0))
-          3 (f state (args 0) (args 1)))]
+          1 (f (assoc state :cpu/last-mem nil))
+          2 (f (assoc state :cpu/last-mem nil) (args 0))
+          3 (f (assoc state :cpu/last-mem nil) (args 0) (args 1)))]
     (cond-> (assoc new-state :cpu/nopc? false)
       (not nopc?) (update :cpu/pc + size))))

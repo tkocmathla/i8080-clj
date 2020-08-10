@@ -29,7 +29,7 @@
         (>= addr 0x4000) (throw #?(:clj (Exception. "Can't write to game RAM!")
                                   :cljs (js/Error "Can't write to game RAM!")))))
     (aset-int mem addr (bit-and b 0xff))
-    state))
+    (assoc state :cpu/last-mem [addr b])))
 
 (defn write-bytes
   "Writes values in xs to sequential locations in memory starting at addr"
