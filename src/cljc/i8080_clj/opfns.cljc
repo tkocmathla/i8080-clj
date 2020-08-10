@@ -13,7 +13,7 @@
   "Gets the ith byte from memory"
   [state ^long i]
   (let [{:keys [^ints cpu/mem]} state]
-    (bit-and (aget mem i) 0xff)))
+    (aget mem i)))
 
 (defn write-byte
   "Writes b to memory at addr"
@@ -42,7 +42,7 @@
 (defn parity
   "Returns 1 if byte b has an even number of 1's, or 0 otherwise"
   [^long b]
-  (if (= 0 (mod (Long/bitCount b) 2)) 1 0))
+  (if (zero? (mod (Long/bitCount b) 2)) 1 0))
 
 (defn byte-at-hl
   "Returns the byte at the address in the HL register pair"
