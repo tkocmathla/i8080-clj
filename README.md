@@ -35,6 +35,8 @@ The i8080 is a relatively simple processor to emulate, since it's 8 bit and only
  :cpu/cc/p 0  ; parity
  :cpu/cc/cy 0 ; carry
  :cpu/cc/ac 0 ; aux carry
+
+ :cpu/last-mem nil ; addr and data of write from last op (or nil)
  }
 ```
 
