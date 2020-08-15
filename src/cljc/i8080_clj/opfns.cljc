@@ -5,6 +5,10 @@
   "When true, throws an exception on illegal memory accesses"
   true)
 
+(def ^:dynamic *log-mem*
+  "When true, records the last memory write to :cpu/last-mem"
+  false)
+
 (def << bit-shift-left)
 (def >> bit-shift-right)
 (def | bit-or)
@@ -29,7 +33,8 @@
         (>= addr 0x4000) (throw #?(:clj (Exception. "Can't write to game RAM!")
                                   :cljs (js/Error "Can't write to game RAM!")))))
     (aset-int mem addr (bit-and b 0xff))
-    (assoc state :cpu/last-mem [addr b])))
+    (cond-> state
+      *log-mem* (assoc :cpu/last-mem [addr b]))))
 
 (defn write-bytes
   "Writes values in xs to sequential locations in memory starting at addr"
